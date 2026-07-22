@@ -8,8 +8,8 @@ WELCOME_MESSAGE = f"""{WELCOME_ID}
 # 👋 Bem-vindo(a) ao LogoAli!
 
 Para começar a utilizar o sistema, você precisa fazer seu cadastro.
-Digite o comando:
-### `/cadastrar`
+Vá no canal #cadastre-se-aqui logo abaixo desse canal e digite o comando:
+```/cadastrar```
 
 Escolha se você é Despachante ou Operador. Após o cadastro, você receberá automaticamente o cargo correspondente e poderá utilizar o restante do servidor.
 
@@ -17,13 +17,13 @@ Caso tenha qualquer dúvida, estes canais podem ajudar:
 
 📚  #como-usar
 
-Tutoriais completos mostrando como utilizar cada parte do servidor.
+Tutoriais completos mostrando como utilizar cada parte do servidor. **É extremamente recomendável ler os tutoriais!**
 
 ❓  #faq-ajuda
 
 Faça perguntas ou veja se sua dúvida já foi respondida por outra pessoa.
 
-💡  #sugestoes-e-problemas
+💡  #sugestoes-e-bugs
 
 Relate bugs encontrados, dificuldades ou envie sugestões de melhorias.
 

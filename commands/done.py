@@ -21,7 +21,7 @@ async def finish_order(
     interaction: discord.Interaction,
     category: str,
     cliente: str,
-    cpf: str,
+    documento: str,
     pedidos: str,
     operador: discord.Member | None,
     revisao: bool,
@@ -125,7 +125,7 @@ async def finish_order(
                 operator_discord_id=str(operador.id),
                 order_category=category,
                 client=cliente,
-                cpf=cpf,
+                cpf=documento,
                 order=pedidos,
                 observations=observacoes,
                 **create_order_kwargs,
@@ -134,12 +134,17 @@ async def finish_order(
             if revisao:
 
                 append_review(
-                    order, category, reason="Marcado para revisão pelo operador."
+                    order,
+                    category,
+                    reason="Marcado para revisão pelo operador.",
                 )
 
             else:
 
-                append_order(order, category)
+                append_order(
+                    order,
+                    category,
+                )
 
         except ValueError as e:
 
@@ -182,8 +187,8 @@ async def finish_order(
     )
 
     embed.add_field(
-        name="CPF",
-        value=cpf,
+        name="CPF" if category == "pf" else "CNPJ",
+        value=documento,
         inline=False,
     )
 

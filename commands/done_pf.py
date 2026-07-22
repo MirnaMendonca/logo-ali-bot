@@ -36,7 +36,7 @@ def setup_done_pf(bot: discord.Client):
             interaction=interaction,
             category="pf",
             cliente=cliente,
-            cpf=cpf,
+            documento=cpf,
             pedidos=pedidos,
             operador=operador,
             revisao=revisao,

@@ -46,7 +46,6 @@ class ClaimOrderView(discord.ui.View):
             return
 
         thread = interaction.channel
-
         forum = thread.parent
 
         if forum is None:
@@ -56,10 +55,22 @@ class ClaimOrderView(discord.ui.View):
             )
             return
 
+        waiting_tag = discord.utils.get(
+            forum.available_tags,
+            name="Aguardando",
+        )
+
         in_progress_tag = discord.utils.get(
             forum.available_tags,
             name="Em andamento",
         )
+
+        if waiting_tag is None:
+            await interaction.response.send_message(
+                "A tag 'Aguardando' não foi encontrada.",
+                ephemeral=True,
+            )
+            return
 
         if in_progress_tag is None:
             await interaction.response.send_message(
@@ -76,13 +87,12 @@ class ClaimOrderView(discord.ui.View):
             finish_command = "/feito"
 
         # Pedido livre
-        if not button.disabled:
+        if button.label == "Assumir pedido":
 
             await thread.edit(
                 applied_tags=[in_progress_tag],
             )
 
-            button.disabled = True
             button.label = f"Assumido por {interaction.user.display_name}"
 
             embed = discord.Embed(
@@ -101,20 +111,19 @@ class ClaimOrderView(discord.ui.View):
 
             return
 
-        # O mesmo operador clicou novamente → devolve
+        # O mesmo operador devolveu o pedido
         if button.label == f"Assumido por {interaction.user.display_name}":
 
-            button.disabled = False
+            await thread.edit(
+                applied_tags=[waiting_tag],
+            )
+
             button.label = "Assumir pedido"
 
             embed = discord.Embed(
                 title="🟡 Serviço aguardando operador",
                 description="Clique no botão abaixo para assumir este serviço.",
                 color=discord.Color.gold(),
-            )
-
-            await thread.edit(
-                applied_tags=[],
             )
 
             await interaction.response.edit_message(
@@ -125,7 +134,9 @@ class ClaimOrderView(discord.ui.View):
             return
 
         # Outro operador tentou assumir
+        operator_name = button.label.removeprefix("Assumido por ")
+
         await interaction.response.send_message(
-            f"Este pedido já está sendo atendido por **{button.label.removeprefix('Assumido por ')}**.",
+            f"Este pedido já está sendo atendido por **{operator_name}**.",
             ephemeral=True,
         )

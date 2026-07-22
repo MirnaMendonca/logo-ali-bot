@@ -12,7 +12,7 @@ def setup_done_pj(bot: discord.Client):
     )
     @app_commands.describe(
         cliente="Nome do cliente",
-        cpf="CPF do cliente",
+        cnpj="CNPJ do cliente",
         pedidos="Pedidos realizados",
         cadastros_reativacoes="Quantidade de Cadastros/Inclusões/Reativações",
         alteracoes_exclusoes="Quantidade de Alterações/Exclusões",
@@ -24,7 +24,7 @@ def setup_done_pj(bot: discord.Client):
     async def done_pj(
         interaction: discord.Interaction,
         cliente: str,
-        cpf: str,
+        cnpj: str,
         pedidos: str,
         cadastros_reativacoes: int,
         alteracoes_exclusoes: int,
@@ -38,7 +38,7 @@ def setup_done_pj(bot: discord.Client):
             interaction=interaction,
             category="pj",
             cliente=cliente,
-            cpf=cpf,
+            documento=cnpj,
             pedidos=pedidos,
             operador=operador,
             revisao=revisao,
