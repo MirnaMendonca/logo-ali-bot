@@ -12,13 +12,18 @@ async def role_autocomplete(
     current: str,
 ):
 
+    allowed_roles = (
+        "dispatcher",
+        "operator",
+    )
+
     return [
         app_commands.Choice(
-            name=label,
+            name=USER_ROLES[key],
             value=key,
         )
-        for key, label in USER_ROLES.items()
-        if current.lower() in label.lower()
+        for key in allowed_roles
+        if current.lower() in USER_ROLES[key].lower()
     ]
 
 
@@ -60,7 +65,10 @@ def setup_register(bot: discord.Client):
 
                 return
 
-            if role not in USER_ROLES:
+            if role not in (
+                "dispatcher",
+                "operator",
+            ):
 
                 await interaction.response.send_message(
                     "Função inválida.",
