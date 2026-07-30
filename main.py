@@ -44,9 +44,15 @@ async def on_thread_create(thread: discord.Thread):
 
     try:
 
-        if thread.parent and isinstance(
-            thread.parent,
-            discord.ForumChannel,
+        if (
+            thread.parent
+            and isinstance(
+                thread.parent,
+                discord.ForumChannel,
+            )
+            and (
+                "pf" in thread.parent.name.lower() or "pj" in thread.parent.name.lower()
+            )
         ):
 
             waiting_tag = discord.utils.get(
@@ -94,8 +100,8 @@ async def on_ready():
             guild=guild,
         )
 
-        if not hasattr(bot, "daily_task"):
-            bot.daily_task = bot.loop.create_task(send_daily_reports(bot))
+    if not hasattr(bot, "daily_task"):
+        bot.daily_task = bot.loop.create_task(send_daily_reports(bot))
 
     print(f"✅ Logado como {bot.user}")
     await setup_server(bot)
