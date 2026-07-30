@@ -6,6 +6,7 @@ from sqlalchemy import Float
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
+
 from .database import Base
 
 
@@ -36,6 +37,12 @@ class Order(Base):
 
     id = Column(Integer, primary_key=True)
 
+    thread_id = Column(
+        String,
+        unique=True,
+        nullable=False,
+    )
+
     guild_id = Column(
         String,
         nullable=False,
@@ -62,7 +69,7 @@ class Order(Base):
         nullable=False,
     )
 
-    cpf = Column(
+    document = Column(
         String,
         nullable=False,
     )
@@ -111,7 +118,4 @@ class Order(Base):
         nullable=True,
     )
 
-    finished_at = Column(
-        DateTime,
-        nullable=False,
-    )
+    finished_at = Column(DateTime, nullable=False)

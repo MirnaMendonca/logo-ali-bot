@@ -1,6 +1,6 @@
 import discord
 
-from database.create_order import create_order
+from database.order_service import create_order
 
 from google.sheets import (
     append_order,
@@ -111,6 +111,8 @@ async def finish_order(
         )
         return
 
+    await interaction.response.defer()
+
     is_free = has_tag(
         interaction.channel,
         "Gratuito",
@@ -121,11 +123,12 @@ async def finish_order(
         try:
 
             order = create_order(
+                thread_id=str(interaction.channel.id),
                 guild_id=str(guild.id),
                 operator_discord_id=str(operador.id),
                 order_category=category,
                 client=cliente,
-                cpf=documento,
+                document=documento,
                 order=pedidos,
                 observations=observacoes,
                 **create_order_kwargs,
@@ -148,7 +151,7 @@ async def finish_order(
 
         except ValueError as e:
 
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 str(e),
                 ephemeral=True,
             )
@@ -158,7 +161,7 @@ async def finish_order(
 
             print(e)
 
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "Ocorreu um erro inesperado ao finalizar o pedido.",
                 ephemeral=True,
             )
@@ -236,6 +239,6 @@ async def finish_order(
             inline=False,
         )
 
-    await interaction.response.send_message(
+    await interaction.followup.send(
         embed=embed,
     )
