@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+
 from server_setup import setup_server
 
 from config import (
@@ -16,6 +17,9 @@ from commands.done_pj import setup_done_pj
 from commands.report_operator import setup_report_operator
 from commands.report_dispatcher import setup_report_dispatcher
 from commands.report_general import setup_report_general
+from commands.delete_order import setup_delete_order
+from commands.edit_order import setup_edit_order
+
 from tasks.daily_reports import send_daily_reports
 
 load_dotenv()
@@ -37,6 +41,8 @@ setup_done_pj(bot)
 setup_report_operator(bot)
 setup_report_dispatcher(bot)
 setup_report_general(bot)
+setup_delete_order(bot)
+setup_edit_order(bot)
 
 
 @bot.event
@@ -90,7 +96,9 @@ async def on_ready():
 
     for guild_id in GUILDS.keys():
 
-        guild = discord.Object(id=int(guild_id))
+        guild = discord.Object(
+            id=int(guild_id),
+        )
 
         bot.tree.copy_global_to(
             guild=guild,
@@ -100,10 +108,17 @@ async def on_ready():
             guild=guild,
         )
 
-    if not hasattr(bot, "daily_task"):
-        bot.daily_task = bot.loop.create_task(send_daily_reports(bot))
+    if not hasattr(
+        bot,
+        "daily_task",
+    ):
+
+        bot.daily_task = bot.loop.create_task(
+            send_daily_reports(bot),
+        )
 
     print(f"✅ Logado como {bot.user}")
+
     await setup_server(bot)
 
 

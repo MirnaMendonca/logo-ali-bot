@@ -1,5 +1,5 @@
 from database.database import SessionLocal
-from database.models import User, Price, Order
+from database.models import User, Order
 
 session = SessionLocal()
 
