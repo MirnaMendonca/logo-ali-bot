@@ -6,6 +6,7 @@ from google.sheets import (
     append_order,
     append_review,
 )
+from utils.tags import set_status_tag
 
 
 def has_tag(
@@ -167,16 +168,10 @@ async def finish_order(
             )
             return
 
-    finished_tag = discord.utils.get(
-        forum.available_tags,
-        name="Finalizado",
+    await set_status_tag(
+        interaction.channel,
+        "Finalizado",
     )
-
-    if finished_tag is not None:
-
-        await interaction.channel.edit(
-            applied_tags=[finished_tag],
-        )
 
     embed = discord.Embed(
         title=embed_title,

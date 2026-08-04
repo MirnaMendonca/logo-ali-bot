@@ -7,6 +7,7 @@ from database.order_service import delete_order
 from google.sheets import delete_order_from_sheet
 
 from config import USER_ROLES
+from utils.tags import set_status_tag
 
 
 class DeleteOrderConfirmationModal(discord.ui.Modal):
@@ -86,18 +87,10 @@ class DeleteOrderConfirmationModal(discord.ui.Modal):
 
             session.close()
 
-        forum = interaction.channel.parent
-
-        cancelled_tag = discord.utils.get(
-            forum.available_tags,
-            name="Cancelado",
+        await set_status_tag(
+            interaction.channel,
+            "Cancelado",
         )
-
-        if cancelled_tag is not None:
-
-            await interaction.channel.edit(
-                applied_tags=[cancelled_tag],
-            )
 
         embed = discord.Embed(
             title="🗑️ Pedido removido",

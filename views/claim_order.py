@@ -1,6 +1,7 @@
 import discord
 
 from config import USER_ROLES
+from utils.tags import set_status_tag
 
 
 class ClaimOrderView(discord.ui.View):
@@ -55,30 +56,6 @@ class ClaimOrderView(discord.ui.View):
             )
             return
 
-        waiting_tag = discord.utils.get(
-            forum.available_tags,
-            name="Aguardando",
-        )
-
-        in_progress_tag = discord.utils.get(
-            forum.available_tags,
-            name="Em andamento",
-        )
-
-        if waiting_tag is None:
-            await interaction.response.send_message(
-                "A tag 'Aguardando' não foi encontrada.",
-                ephemeral=True,
-            )
-            return
-
-        if in_progress_tag is None:
-            await interaction.response.send_message(
-                "A tag 'Em andamento' não foi encontrada.",
-                ephemeral=True,
-            )
-            return
-
         if "pf" in forum.name.lower():
             finish_command = "/feito-pf"
         elif "pj" in forum.name.lower():
@@ -89,8 +66,9 @@ class ClaimOrderView(discord.ui.View):
         # Pedido livre
         if button.label == "Assumir pedido":
 
-            await thread.edit(
-                applied_tags=[in_progress_tag],
+            await set_status_tag(
+                thread,
+                "Em andamento",
             )
 
             button.label = f"Assumido por {interaction.user.display_name}"
@@ -114,8 +92,9 @@ class ClaimOrderView(discord.ui.View):
         # O mesmo operador devolveu o pedido
         if button.label == f"Assumido por {interaction.user.display_name}":
 
-            await thread.edit(
-                applied_tags=[waiting_tag],
+            await set_status_tag(
+                thread,
+                "Aguardando",
             )
 
             button.label = "Assumir pedido"

@@ -9,6 +9,7 @@ from config import (
     GUILDS,
 )
 
+from utils.tags import set_status_tag
 from views.claim_order import ClaimOrderView
 
 from commands.register import setup_register
@@ -61,16 +62,10 @@ async def on_thread_create(thread: discord.Thread):
             )
         ):
 
-            waiting_tag = discord.utils.get(
-                thread.parent.available_tags,
-                name="Aguardando",
+            await set_status_tag(
+                thread,
+                "Aguardando",
             )
-
-            if waiting_tag is not None:
-
-                await thread.edit(
-                    applied_tags=[waiting_tag],
-                )
 
             embed = discord.Embed(
                 title="🟡 Pedido aguardando",
