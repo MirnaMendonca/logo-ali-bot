@@ -1,9 +1,11 @@
 from datetime import datetime, timezone, timedelta
 import asyncio
+import os
 
 import discord
 
 from database.reports import get_general_summary
+from utils.excel import generate_daily_excel
 
 LAST_SENT_DATE = {}
 
@@ -31,7 +33,7 @@ async def send_daily_reports(bot: discord.Client):
 
                 channel = discord.utils.get(
                     guild.text_channels,
-                    name="relatorios",
+                    name="relatorio-financeiro",
                 )
 
                 if channel is None:
@@ -101,6 +103,7 @@ async def send_daily_reports(bot: discord.Client):
                             )
 
                         if not operators_text:
+
                             operators_text = "Nenhum pedido nesta semana."
 
                         embed.add_field(
@@ -118,6 +121,27 @@ async def send_daily_reports(bot: discord.Client):
                     await channel.send(
                         embed=embed,
                     )
+
+                    #
+                    # Planilha dos pedidos do dia
+                    #
+
+                    order_reports_channel = discord.utils.get(
+                        guild.text_channels,
+                        name="relatorio-pedidos",
+                    )
+
+                    excel_path = generate_daily_excel(
+                        guild_id=str(guild.id),
+                        date=now,
+                    )
+
+                    await order_reports_channel.send(
+                        content=f"📄 **Pedidos do dia {today.strftime('%d/%m/%Y')}:**",
+                        file=discord.File(excel_path),
+                    )
+
+                    os.remove(excel_path)
 
                     LAST_SENT_DATE[guild.id] = today
 

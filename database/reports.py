@@ -240,6 +240,40 @@ def get_general_summary(
         session.close()
 
 
+def get_orders(
+    guild_id: str,
+    start_date: datetime,
+    end_date: datetime | None = None,
+):
+
+    session = SessionLocal()
+
+    try:
+
+        query = (
+            session.query(Order)
+            .filter(
+                Order.guild_id == guild_id,
+                Order.finished_at >= start_date,
+            )
+            .order_by(
+                Order.finished_at.asc(),
+            )
+        )
+
+        if end_date is not None:
+
+            query = query.filter(
+                Order.finished_at < end_date,
+            )
+
+        return query.all()
+
+    finally:
+
+        session.close()
+
+
 def get_today_period():
 
     start = start_of_today()
