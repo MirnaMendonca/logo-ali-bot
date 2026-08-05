@@ -2,10 +2,7 @@ import discord
 
 from database.order_service import create_order
 
-from google.sheets import (
-    append_order,
-    append_review,
-)
+from google.sheets import append_order
 from utils.tags import set_status_tag
 
 
@@ -25,7 +22,6 @@ async def finish_order(
     documento: str,
     pedidos: str,
     operador: discord.Member | None,
-    revisao: bool,
     observacoes: str | None,
     embed_title: str,
     amount_fields: list[tuple[str, int]],
@@ -135,20 +131,10 @@ async def finish_order(
                 **create_order_kwargs,
             )
 
-            if revisao:
-
-                append_review(
-                    order,
-                    category,
-                    reason="Marcado para revisão pelo operador.",
-                )
-
-            else:
-
-                append_order(
-                    order,
-                    category,
-                )
+            append_order(
+                order,
+                category,
+            )
 
         except ValueError as e:
 
@@ -223,14 +209,6 @@ async def finish_order(
         embed.add_field(
             name="Situação",
             value="🆓 Pedido gratuito",
-            inline=False,
-        )
-
-    elif revisao:
-
-        embed.add_field(
-            name="Situação",
-            value="🔎 Enviado para revisão",
             inline=False,
         )
 

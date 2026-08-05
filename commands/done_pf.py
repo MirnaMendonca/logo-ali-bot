@@ -17,7 +17,6 @@ def setup_done_pf(bot: discord.Client):
         quantidade="Quantidade de taxas cobradas. Ex: um cadastro com duas placas são duas taxas",
         cursos="Quantidade de cursos feitos (RT ou TAC)",
         observacoes="Observações (opcional)",
-        revisao="Enviar para revisão?",
         operador="Operador (opcional)",
     )
     async def done_pf(
@@ -28,7 +27,6 @@ def setup_done_pf(bot: discord.Client):
         quantidade: int,
         cursos: int,
         observacoes: str | None = None,
-        revisao: bool = False,
         operador: discord.Member | None = None,
     ):
 
@@ -39,7 +37,6 @@ def setup_done_pf(bot: discord.Client):
             documento=cpf,
             pedidos=pedidos,
             operador=operador,
-            revisao=revisao,
             observacoes=observacoes,
             embed_title="✅ Pedido PF finalizado",
             amount_fields=[

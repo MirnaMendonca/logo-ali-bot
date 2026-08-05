@@ -18,7 +18,6 @@ def setup_done_pj(bot: discord.Client):
         alteracoes_exclusoes="Quantidade de Alterações/Exclusões",
         cursos="Quantidade de cursos feitos (RT ou TAC)",
         observacoes="Observações (opcional)",
-        revisao="Enviar para revisão?",
         operador="Operador (opcional)",
     )
     async def done_pj(
@@ -30,7 +29,6 @@ def setup_done_pj(bot: discord.Client):
         alteracoes_exclusoes: int,
         cursos: int,
         observacoes: str | None = None,
-        revisao: bool = False,
         operador: discord.Member | None = None,
     ):
 
@@ -41,7 +39,6 @@ def setup_done_pj(bot: discord.Client):
             documento=cnpj,
             pedidos=pedidos,
             operador=operador,
-            revisao=revisao,
             observacoes=observacoes,
             embed_title="✅ Pedido PJ finalizado",
             amount_fields=[
