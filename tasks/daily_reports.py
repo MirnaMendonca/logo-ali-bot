@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import asyncio
 
 import discord
@@ -7,6 +7,10 @@ from database.reports import get_general_summary
 
 LAST_SENT_DATE = {}
 
+BRASIL = timezone(
+    timedelta(hours=-3),
+)
+
 
 async def send_daily_reports(bot: discord.Client):
 
@@ -14,7 +18,7 @@ async def send_daily_reports(bot: discord.Client):
 
     while not bot.is_closed():
 
-        now = datetime.now()
+        now = datetime.now(BRASIL)
 
         if now.hour == 23:
 
@@ -111,7 +115,9 @@ async def send_daily_reports(bot: discord.Client):
                             inline=False,
                         )
 
-                    await channel.send(embed=embed)
+                    await channel.send(
+                        embed=embed,
+                    )
 
                     LAST_SENT_DATE[guild.id] = today
 
