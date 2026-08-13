@@ -2,7 +2,6 @@ import discord
 from discord import app_commands
 
 from database.database import SessionLocal
-from database.models import User
 from database.order_service import edit_order, get_order_by_thread_id
 
 from google.sheets import update_order_on_sheet

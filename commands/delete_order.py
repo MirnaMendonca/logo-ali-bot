@@ -44,6 +44,10 @@ class DeleteOrderConfirmationModal(discord.ui.Modal):
 
             return
 
+        await interaction.response.defer(
+            ephemeral=True,
+        )
+
         session = SessionLocal()
 
         try:
@@ -64,7 +68,7 @@ class DeleteOrderConfirmationModal(discord.ui.Modal):
 
             session.rollback()
 
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 str(e),
                 ephemeral=True,
             )
@@ -74,9 +78,13 @@ class DeleteOrderConfirmationModal(discord.ui.Modal):
         except Exception as e:
 
             session.rollback()
-            print(e)
 
-            await interaction.response.send_message(
+            print(
+                f"[ERRO][DELETE] Não foi possível deletar o pedido "
+                f"thread={interaction.channel.id} | erro={repr(e)}"
+            )
+
+            await interaction.followup.send(
                 "Ocorreu um erro ao deletar o pedido.",
                 ephemeral=True,
             )
@@ -87,10 +95,19 @@ class DeleteOrderConfirmationModal(discord.ui.Modal):
 
             session.close()
 
-        await set_status_tag(
-            interaction.channel,
-            "Cancelado",
-        )
+        try:
+
+            await set_status_tag(
+                interaction.channel,
+                "Cancelado",
+            )
+
+        except Exception as e:
+
+            print(
+                f"[ERRO][TAG] Não foi possível marcar pedido como Cancelado "
+                f"thread={interaction.channel.id} | erro={repr(e)}"
+            )
 
         embed = discord.Embed(
             title="🗑️ Pedido removido",
@@ -101,8 +118,9 @@ class DeleteOrderConfirmationModal(discord.ui.Modal):
             color=discord.Color.red(),
         )
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             embed=embed,
+            ephemeral=True,
         )
 
 
@@ -141,29 +159,36 @@ def setup_delete_order(bot: discord.Client):
             return
 
         session = SessionLocal()
+
         try:
+
             order_obj = get_order_by_thread_id(
                 session=session,
                 thread_id=str(interaction.channel.id),
             )
 
             if order_obj is None:
+
                 await interaction.response.send_message(
                     "Pedido não encontrado.",
                     ephemeral=True,
                 )
+
                 return
 
             category = order_obj.category
 
             if category not in ("pf", "pj"):
+
                 await interaction.response.send_message(
                     "Este comando só pode ser usado em pedidos PF ou PJ.",
                     ephemeral=True,
                 )
+
                 return
 
         finally:
+
             session.close()
 
         await interaction.response.send_modal(
