@@ -17,15 +17,16 @@ from config import (
 
 def calculate_order_values(
     order: Order,
-    category: str,
 ):
 
-    guild = GUILDS.get(int(order.guild_id))
+    guild = GUILDS.get(
+        int(order.guild_id),
+    )
 
     if guild is None:
         raise ValueError("Este servidor não possui configuração.")
 
-    if category == "pf":
+    if order.category == "pf":
 
         pf_price = guild["pf_price"]
 
@@ -37,7 +38,7 @@ def calculate_order_values(
             COURSE_PRICE * order.course_amount
         )
 
-    elif category == "pj":
+    elif order.category == "pj":
 
         order.dispatcher_value = (
             (PJ_REFUND_VALUE_CAD_OR_REVAL * order.pj_amount_cad_or_reval)
@@ -87,10 +88,15 @@ def create_order(
         if operator is None:
             raise ValueError("Operador não cadastrado.")
 
-        guild = GUILDS.get(int(guild_id))
+        guild = GUILDS.get(
+            int(guild_id),
+        )
 
         if guild is None:
             raise ValueError("Este servidor não possui configuração.")
+
+        if order_category not in ("pf", "pj"):
+            raise ValueError("Categoria de pedido inválida.")
 
         finished_at = datetime.now(
             timezone(
@@ -98,12 +104,13 @@ def create_order(
             )
         )
 
-        order = Order(
+        new_order = Order(
             thread_id=thread_id,
             guild_id=guild_id,
             guild_name=guild["dispatcher_name"],
             operator_id=operator.id,
             operator_name=operator.name,
+            category=order_category,
             client=client,
             document=document,
             order=order,
@@ -115,13 +122,21 @@ def create_order(
             finished_at=finished_at,
         )
 
-        calculate_order_values(order, order_category)
+        calculate_order_values(
+            new_order,
+        )
 
-        session.add(order)
+        session.add(
+            new_order,
+        )
+
         session.commit()
-        session.refresh(order)
 
-        return order
+        session.refresh(
+            new_order,
+        )
+
+        return new_order
 
     except:
 
@@ -162,7 +177,9 @@ def delete_order(
     if order is None:
         raise ValueError("Pedido não encontrado.")
 
-    session.delete(order)
+    session.delete(
+        order,
+    )
 
     return order
 
@@ -171,7 +188,6 @@ def edit_order(
     *,
     session,
     thread_id: str,
-    category: str,
     client: str | None = None,
     document: str | None = None,
     order_text: str | None = None,
@@ -200,14 +216,22 @@ def edit_order(
     if order_text is not None:
         order.order = order_text
 
-    if pf_amount is not None:
-        order.pf_amount = pf_amount
+    if order.category == "pf":
 
-    if pj_amount_cad_or_reval is not None:
-        order.pj_amount_cad_or_reval = pj_amount_cad_or_reval
+        if pf_amount is not None:
+            order.pf_amount = pf_amount
 
-    if pj_amount_alt_or_rem is not None:
-        order.pj_amount_alt_or_rem = pj_amount_alt_or_rem
+    elif order.category == "pj":
+
+        if pj_amount_cad_or_reval is not None:
+            order.pj_amount_cad_or_reval = pj_amount_cad_or_reval
+
+        if pj_amount_alt_or_rem is not None:
+            order.pj_amount_alt_or_rem = pj_amount_alt_or_rem
+
+    else:
+
+        raise ValueError("Categoria de pedido inválida.")
 
     if course_amount is not None:
         order.course_amount = course_amount
@@ -233,7 +257,6 @@ def edit_order(
 
     calculate_order_values(
         order,
-        category,
     )
 
     return order

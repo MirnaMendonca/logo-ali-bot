@@ -29,7 +29,7 @@ def generate_daily_excel(
             "Pedidos",
             "Qtd. Taxas",
             "Cursos",
-            "Valor a cobrar",
+            "Valor",
             "Operador",
             "Observações",
         ]
@@ -44,7 +44,7 @@ def generate_daily_excel(
             "Cadastros/Reativações",
             "Alterações/Exclusões",
             "Cursos",
-            "Valor a cobrar",
+            "Valor",
             "Operador",
             "Observações",
         ]
@@ -77,13 +77,11 @@ def generate_daily_excel(
 
     for order in orders:
 
-        if order.pf_amount > 0:
+        if order.category == "pf":
 
             pf_sheet.append(
                 [
-                    order.finished_at.strftime(
-                        "%d/%m/%Y %H:%M",
-                    ),
+                    order.finished_at.strftime("%d/%m/%Y %H:%M"),
                     order.client,
                     order.document,
                     order.order,
@@ -95,13 +93,11 @@ def generate_daily_excel(
                 ]
             )
 
-        else:
+        elif order.category == "pj":
 
             pj_sheet.append(
                 [
-                    order.finished_at.strftime(
-                        "%d/%m/%Y %H:%M",
-                    ),
+                    order.finished_at.strftime("%d/%m/%Y %H:%M"),
                     order.client,
                     order.document,
                     order.order,

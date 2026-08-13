@@ -1,5 +1,6 @@
 from datetime import datetime
 from datetime import timedelta
+from datetime import timezone
 
 from sqlalchemy import func
 
@@ -14,10 +15,14 @@ from config import (
     PJ_REFUND_VALUE_CAD_OR_REVAL,
 )
 
+BRASIL = timezone(
+    timedelta(hours=-3),
+)
+
 
 def start_of_today():
 
-    now = datetime.now()
+    now = datetime.now(BRASIL)
 
     return datetime(
         now.year,
@@ -160,7 +165,7 @@ def get_dispatcher_summary(
             "pf_value": pf_value,
             "course_value": course_value,
             "pj_refund_value": pj_refund_value,
-            "net_value": (pf_value + course_value) - pj_refund_value,
+            "net_value": (pf_value + course_value - pj_refund_value),
         }
 
     finally:

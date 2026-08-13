@@ -64,6 +64,11 @@ class Order(Base):
         nullable=False,
     )
 
+    category = Column(
+        String,
+        nullable=False,
+    )
+
     client = Column(
         String,
         nullable=False,

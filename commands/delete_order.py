@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 
 from database.database import SessionLocal
-from database.order_service import delete_order
+from database.order_service import delete_order, get_order_by_thread_id
 
 from google.sheets import delete_order_from_sheet
 
@@ -140,33 +140,31 @@ def setup_delete_order(bot: discord.Client):
 
             return
 
-        forum = interaction.channel.parent
-
-        if forum is None:
-
-            await interaction.response.send_message(
-                "Não foi possível identificar o fórum.",
-                ephemeral=True,
+        session = SessionLocal()
+        try:
+            order_obj = get_order_by_thread_id(
+                session=session,
+                thread_id=str(interaction.channel.id),
             )
 
-            return
+            if order_obj is None:
+                await interaction.response.send_message(
+                    "Pedido não encontrado.",
+                    ephemeral=True,
+                )
+                return
 
-        if "pf" in forum.name.lower():
+            category = order_obj.category
 
-            category = "pf"
+            if category not in ("pf", "pj"):
+                await interaction.response.send_message(
+                    "Este comando só pode ser usado em pedidos PF ou PJ.",
+                    ephemeral=True,
+                )
+                return
 
-        elif "pj" in forum.name.lower():
-
-            category = "pj"
-
-        else:
-
-            await interaction.response.send_message(
-                "Este comando só pode ser usado em pedidos PF ou PJ.",
-                ephemeral=True,
-            )
-
-            return
+        finally:
+            session.close()
 
         await interaction.response.send_modal(
             DeleteOrderConfirmationModal(

@@ -1,5 +1,13 @@
 import discord
 
+STATUS_NAMES = {
+    "aguardando",
+    "em andamento",
+    "com pendência",
+    "finalizado",
+    "cancelado",
+}
+
 
 async def set_status_tag(
     thread: discord.Thread,
@@ -14,16 +22,6 @@ async def set_status_tag(
     ):
         return
 
-    status_names = {
-        "Aguardando",
-        "Em andamento",
-        "Com pendência",
-        "Finalizado",
-        "Cancelado",
-    }
-
-    tags = [tag for tag in thread.applied_tags if tag.name not in status_names]
-
     new_status = discord.utils.get(
         forum.available_tags,
         name=status,
@@ -31,6 +29,12 @@ async def set_status_tag(
 
     if new_status is None:
         raise ValueError(f"A tag '{status}' não existe neste fórum.")
+
+    tags = [
+        tag
+        for tag in thread.applied_tags
+        if tag.name.strip().lower() not in STATUS_NAMES
+    ]
 
     tags.append(new_status)
 

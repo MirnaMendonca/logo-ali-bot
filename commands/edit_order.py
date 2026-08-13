@@ -3,7 +3,7 @@ from discord import app_commands
 
 from database.database import SessionLocal
 from database.models import User
-from database.order_service import edit_order
+from database.order_service import edit_order, get_order_by_thread_id
 
 from google.sheets import update_order_on_sheet
 
@@ -196,44 +196,51 @@ def setup_edit_order(bot: discord.Client):
             )
             return
 
-        forum = interaction.channel.parent
+        session = SessionLocal()
 
-        if forum is None:
-            await interaction.response.send_message(
-                "Não foi possível identificar a categoria do pedido.",
-                ephemeral=True,
+        try:
+            order_obj = get_order_by_thread_id(
+                session=session,
+                thread_id=str(interaction.channel.id),
             )
-            return
 
-        if "pf" in forum.name.lower():
-
-            order_category = "pf"
-
-            if cadastros_reativacoes is not None or alteracoes_exclusoes is not None:
+            if order_obj is None:
                 await interaction.response.send_message(
-                    "Este pedido é **PF**. Não é possível editar campos exclusivos de pedidos PJ.",
+                    "Pedido não encontrado.",
                     ephemeral=True,
                 )
                 return
 
-        elif "pj" in forum.name.lower():
+            order_category = order_obj.category
 
-            order_category = "pj"
+            if order_category == "pf":
+                if (
+                    cadastros_reativacoes is not None
+                    or alteracoes_exclusoes is not None
+                ):
+                    await interaction.response.send_message(
+                        "Este pedido é **PF**. Não é possível editar campos exclusivos de pedidos PJ.",
+                        ephemeral=True,
+                    )
+                    return
 
-            if quantidade_pf is not None:
+            elif order_category == "pj":
+                if quantidade_pf is not None:
+                    await interaction.response.send_message(
+                        "Este pedido é **PJ**. Não é possível editar a quantidade de taxas PF.",
+                        ephemeral=True,
+                    )
+                    return
+
+            else:
                 await interaction.response.send_message(
-                    "Este pedido é **PJ**. Não é possível editar a quantidade de taxas PF.",
+                    "Este comando só pode ser utilizado em pedidos PF ou PJ.",
                     ephemeral=True,
                 )
                 return
 
-        else:
-
-            await interaction.response.send_message(
-                "Este comando só pode ser utilizado em pedidos PF ou PJ.",
-                ephemeral=True,
-            )
-            return
+        finally:
+            session.close()
 
         modal = EditOrderConfirmationModal(
             order_category=order_category,
