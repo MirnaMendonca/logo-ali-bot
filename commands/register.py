@@ -44,6 +44,18 @@ def setup_register(bot: discord.Client):
         role: str,
     ):
 
+        if role not in (
+            "dispatcher",
+            "operator",
+        ):
+
+            await interaction.response.send_message(
+                "Função inválida.",
+                ephemeral=True,
+            )
+
+            return
+
         session = SessionLocal()
 
         try:
@@ -58,20 +70,60 @@ def setup_register(bot: discord.Client):
 
             if existing_user:
 
-                await interaction.response.send_message(
-                    "Você já está cadastrado.",
-                    ephemeral=True,
+                if existing_user.role != role:
+
+                    await interaction.response.send_message(
+                        (
+                            f"Você já está cadastrado como "
+                            f"**{USER_ROLES[existing_user.role]}**. "
+                            "Não é possível alterar sua função."
+                        ),
+                        ephemeral=True,
+                    )
+
+                    return
+
+                user_role = discord.utils.get(
+                    interaction.guild.roles,
+                    name=USER_ROLES[existing_user.role],
                 )
 
-                return
+                if user_role is None:
 
-            if role not in (
-                "dispatcher",
-                "operator",
-            ):
+                    await interaction.response.send_message(
+                        (
+                            f"O cargo **{USER_ROLES[existing_user.role]}** "
+                            "não foi encontrado neste servidor. "
+                            "Contate um administrador."
+                        ),
+                        ephemeral=True,
+                    )
+
+                    return
+
+                if user_role not in interaction.user.roles:
+
+                    await interaction.user.add_roles(
+                        user_role,
+                    )
+
+                    await interaction.response.send_message(
+                        (
+                            f"Você já estava cadastrado como "
+                            f"**{USER_ROLES[existing_user.role]}**, "
+                            "e o cargo foi adicionado neste servidor."
+                        ),
+                        ephemeral=True,
+                    )
+
+                    return
 
                 await interaction.response.send_message(
-                    "Função inválida.",
+                    (
+                        f"Você já está cadastrado como "
+                        f"**{USER_ROLES[existing_user.role]}** "
+                        "e já possui o cargo neste servidor."
+                    ),
                     ephemeral=True,
                 )
 
@@ -82,9 +134,6 @@ def setup_register(bot: discord.Client):
                 name=interaction.user.display_name,
                 role=role,
             )
-
-            session.add(user)
-            session.commit()
 
             discord_role = discord.utils.get(
                 interaction.guild.roles,
@@ -104,6 +153,9 @@ def setup_register(bot: discord.Client):
 
                 return
 
+            session.add(user)
+            session.commit()
+
             await interaction.user.add_roles(
                 discord_role,
             )
@@ -118,6 +170,11 @@ def setup_register(bot: discord.Client):
                 embed=embed,
                 ephemeral=True,
             )
+
+        except Exception:
+
+            session.rollback()
+            raise
 
         finally:
 

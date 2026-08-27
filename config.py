@@ -12,7 +12,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 
 DESCOMPLICA_GUILD_ID = 1521632374721347664
 # RAFAEL_GUILD_ID = ...
-# LUAN_GUILD_ID = ...
+LUAN_GUILD_ID = 1542535799260717126
 # CLAUDIA_GUILD_ID = ...
 # LUCIANO_GUILD_ID = ...
 
@@ -25,10 +25,10 @@ GUILDS = {
     #     "dispatcher_name": "rafael",
     #     "pf_price": 130,
     # },
-    # LUAN_GUILD_ID: {
-    #     "dispatcher_name": "luan",
-    #     "pf_price": 135,
-    # },
+    LUAN_GUILD_ID: {
+        "dispatcher_name": "luan",
+        "pf_price": 135,
+    },
     # CLAUDIA_GUILD_ID: {
     #     "dispatcher_name": "claudia",
     #     "pf_price": 135,
