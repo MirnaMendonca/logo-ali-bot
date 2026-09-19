@@ -4,7 +4,7 @@ from discord import app_commands
 from database.database import SessionLocal
 from database.order_service import edit_order, get_order_by_thread_id
 
-from google.sheets import update_order_on_sheet
+from google.sheets import update_order_on_sheets
 
 
 class EditOrderConfirmationModal(discord.ui.Modal):
@@ -76,7 +76,6 @@ class EditOrderConfirmationModal(discord.ui.Modal):
             order = edit_order(
                 session=session,
                 thread_id=self.thread_id,
-                category=self.order_category,
                 client=self.cliente,
                 document=self.documento,
                 order_text=self.pedidos,
@@ -88,7 +87,7 @@ class EditOrderConfirmationModal(discord.ui.Modal):
                 observations=self.observacoes,
             )
 
-            update_order_on_sheet(
+            update_order_on_sheets(
                 order=order,
                 category=self.order_category,
             )

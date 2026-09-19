@@ -50,6 +50,9 @@ USER_ROLES = {"dispatcher": "Despachante", "operator": "Operador", "admin": "Adm
 # ============================
 
 GOOGLE_SHEETS_ID = "1Fpnbl-OV9NMQyRcU821sI0sXemSLzVGPaLEGzU2X2zc"
+DISPATCHER_SHEETS_IDS = {
+    DESCOMPLICA_GUILD_ID: "1EpiNjbg9c6NFl3wCXlnvwCD58em8leSjGjQJXFb9y4o",
+}
 
 # ============================
 # Valores
