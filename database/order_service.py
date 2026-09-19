@@ -165,6 +165,21 @@ def get_order_by_thread_id(
     )
 
 
+def get_existing_order(
+    *,
+    thread_id: str,
+) -> Order | None:
+    session = SessionLocal()
+
+    try:
+        return get_order_by_thread_id(
+            session=session,
+            thread_id=thread_id,
+        )
+    finally:
+        session.close()
+
+
 def delete_order(
     *,
     session,

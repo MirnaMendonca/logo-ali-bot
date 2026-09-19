@@ -4,7 +4,7 @@ from discord import app_commands
 from database.database import SessionLocal
 from database.order_service import delete_order, get_order_by_thread_id
 
-from google.sheets import delete_order_from_sheet
+from google.sheets import delete_order_from_sheets
 
 from config import USER_ROLES
 from utils.tags import set_status_tag
@@ -57,7 +57,7 @@ class DeleteOrderConfirmationModal(discord.ui.Modal):
                 thread_id=str(interaction.channel.id),
             )
 
-            delete_order_from_sheet(
+            delete_order_from_sheets(
                 order=order,
                 category=self.category,
             )

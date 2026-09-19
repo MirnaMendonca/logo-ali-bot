@@ -1,6 +1,8 @@
 import discord
+from sqlalchemy.exc import IntegrityError
 
 from database.order_service import create_order
+from database.order_service import get_existing_order
 
 from google.sheets import append_dispatcher_order
 from google.sheets import append_order
@@ -129,18 +131,31 @@ async def finish_order(
 
         try:
 
-            order = create_order(
+            order = get_existing_order(
                 thread_id=str(interaction.channel.id),
-                guild_id=str(guild.id),
-                operator_discord_id=str(operador.id),
-                dispatcher_name=dispatcher.display_name,
-                order_category=category,
-                client=cliente,
-                document=documento,
-                order=pedidos,
-                observations=observacoes,
-                **create_order_kwargs,
             )
+
+            if order is None:
+                try:
+                    order = create_order(
+                        thread_id=str(interaction.channel.id),
+                        guild_id=str(guild.id),
+                        operator_discord_id=str(operador.id),
+                        dispatcher_name=dispatcher.display_name,
+                        order_category=category,
+                        client=cliente,
+                        document=documento,
+                        order=pedidos,
+                        observations=observacoes,
+                        **create_order_kwargs,
+                    )
+                except IntegrityError:
+                    order = get_existing_order(
+                        thread_id=str(interaction.channel.id),
+                    )
+
+                    if order is None:
+                        raise
 
             append_order(
                 order,
