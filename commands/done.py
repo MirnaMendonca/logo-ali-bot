@@ -2,6 +2,7 @@ import discord
 
 from database.order_service import create_order
 
+from google.sheets import append_dispatcher_order
 from google.sheets import append_order
 from utils.tags import set_status_tag
 
@@ -71,6 +72,15 @@ async def finish_order(
         )
         return
 
+    dispatcher = interaction.channel.owner
+
+    if dispatcher is None:
+        await interaction.response.send_message(
+            "Não foi possível identificar o despachante deste pedido.",
+            ephemeral=True,
+        )
+        return
+
     if category not in forum.name.lower():
         await interaction.response.send_message(
             f"Este comando só pode ser utilizado em pedidos {category.upper()}.",
@@ -123,6 +133,7 @@ async def finish_order(
                 thread_id=str(interaction.channel.id),
                 guild_id=str(guild.id),
                 operator_discord_id=str(operador.id),
+                dispatcher_name=dispatcher.display_name,
                 order_category=category,
                 client=cliente,
                 document=documento,
@@ -132,6 +143,11 @@ async def finish_order(
             )
 
             append_order(
+                order,
+                category,
+            )
+
+            append_dispatcher_order(
                 order,
                 category,
             )

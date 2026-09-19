@@ -76,7 +76,6 @@ class EditOrderConfirmationModal(discord.ui.Modal):
             order = edit_order(
                 session=session,
                 thread_id=self.thread_id,
-                category=self.order_category,
                 client=self.cliente,
                 document=self.documento,
                 order_text=self.pedidos,

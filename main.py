@@ -1,3 +1,5 @@
+import asyncio
+
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -10,6 +12,7 @@ from config import (
 )
 
 from utils.tags import set_status_tag
+from utils.tags import STATUS_NAMES
 from views.claim_order import ClaimOrderView
 
 from commands.register import setup_register
@@ -23,8 +26,10 @@ from commands.edit_order import setup_edit_order
 from commands.daily_report import setup_daily_report
 
 from tasks.daily_reports import send_daily_reports
+from database.database import ensure_schema
 
 load_dotenv()
+ensure_schema()
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -36,6 +41,7 @@ bot = commands.Bot(
 )
 
 bot.add_view(ClaimOrderView())
+order_reconciliation_lock = asyncio.Lock()
 
 setup_register(bot)
 setup_done_pf(bot)
@@ -48,52 +54,43 @@ setup_edit_order(bot)
 setup_daily_report(bot)
 
 
-@bot.event
-async def on_thread_create(thread: discord.Thread):
-
-    if not (
-        thread.parent
-        and isinstance(
-            thread.parent,
-            discord.ForumChannel,
-        )
-        and ("pf" in thread.parent.name.lower() or "pj" in thread.parent.name.lower())
-    ):
-        return
-
-    print(
-        f"[THREAD] Nova thread detectada | "
-        f"id={thread.id} | "
-        f"nome='{thread.name}' | "
-        f"forum='{thread.parent.name}'"
+def is_order_forum(channel):
+    return (
+        isinstance(channel, discord.ForumChannel)
+        and ("pf" in channel.name.lower() or "pj" in channel.name.lower())
     )
 
-    try:
 
-        print(f"[THREAD] Tentando adicionar tag 'Aguardando' | " f"thread={thread.id}")
+async def wait_for_initial_thread_message(thread: discord.Thread):
+    for attempt in range(6):
+        try:
+            await thread.fetch_message(thread.id)
+            return True
+        except discord.NotFound:
+            if attempt < 5:
+                await asyncio.sleep(2)
+        except discord.Forbidden:
+            return False
 
-        await set_status_tag(
-            thread,
-            "Aguardando",
-        )
+    return False
 
-        print(
-            f"[THREAD] Tag 'Aguardando' adicionada com sucesso | " f"thread={thread.id}"
-        )
 
-    except Exception as e:
+async def ensure_order_thread_setup(thread: discord.Thread):
+    if not is_order_forum(thread.parent):
+        return
 
-        print(
-            f"[ERRO][TAG] Não foi possível adicionar a tag "
-            f"'Aguardando' | "
-            f"thread={thread.id} | "
-            f"nome='{thread.name}' | "
-            f"erro={repr(e)}"
-        )
+    async with order_reconciliation_lock:
+        if not await wait_for_initial_thread_message(thread):
+            print(
+                f"[BOTÃO] Mensagem inicial ainda não disponível | "
+                f"thread={thread.id}"
+            )
+            return
 
-    try:
-
-        print(f"[THREAD] Tentando enviar mensagem e botão | " f"thread={thread.id}")
+        if not any(
+            tag.name.strip().lower() in STATUS_NAMES for tag in thread.applied_tags
+        ):
+            await set_status_tag(thread, "Aguardando")
 
         embed = discord.Embed(
             title="🟡 Pedido aguardando",
@@ -107,14 +104,26 @@ async def on_thread_create(thread: discord.Thread):
         )
 
         print(
-            f"[THREAD] Mensagem e botão enviados com sucesso | " f"thread={thread.id}"
+            f"[BOTÃO] Botão de assumir adicionado | "
+            f"thread={thread.id} | nome='{thread.name}'"
         )
 
-    except Exception as e:
 
+@bot.event
+async def on_thread_create(thread: discord.Thread):
+    if not is_order_forum(thread.parent):
+        return
+
+    print(
+        f"[THREAD] Nova thread detectada | "
+        f"id={thread.id} | nome='{thread.name}' | forum='{thread.parent.name}'"
+    )
+
+    try:
+        await ensure_order_thread_setup(thread)
+    except Exception as e:
         print(
-            f"[ERRO][BOTÃO] Não foi possível enviar a mensagem "
-            f"com o botão | "
+            f"[ERRO][THREAD] Não foi possível configurar "
             f"thread={thread.id} | "
             f"nome='{thread.name}' | "
             f"erro={repr(e)}"

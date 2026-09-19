@@ -3,6 +3,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 from gspread.exceptions import WorksheetNotFound
 
+from config import DISPATCHER_ORDERS_SHEETS_ID
 from config import GOOGLE_SHEETS_ID
 
 SCOPES = [
@@ -19,6 +20,7 @@ credentials = Credentials.from_service_account_file(
 client = gspread.authorize(credentials)
 
 spreadsheet = client.open_by_key(GOOGLE_SHEETS_ID)
+dispatcher_orders_spreadsheet = client.open_by_key(DISPATCHER_ORDERS_SHEETS_ID)
 
 
 def get_worksheet(name: str):
@@ -135,6 +137,58 @@ def append_order(
         raise ValueError(
             "Categoria de pedido inválida.",
         )
+
+
+def append_dispatcher_order(
+    order,
+    category: str,
+):
+    worksheet = dispatcher_orders_spreadsheet.worksheet(category.upper())
+
+    if category == "pf":
+        values = [
+            order.finished_at.strftime("%d/%m/%Y %H:%M"),
+            order.client,
+            order.document,
+            order.order,
+            order.pf_amount,
+            order.course_amount,
+            order.dispatcher_value,
+            order.operator_name,
+            order.dispatcher_name,
+            order.observations or "",
+        ]
+
+    elif category == "pj":
+        values = [
+            order.finished_at.strftime("%d/%m/%Y %H:%M"),
+            order.client,
+            order.document,
+            order.order,
+            order.pj_amount_cad_or_reval,
+            order.pj_amount_alt_or_rem,
+            order.course_amount,
+            order.dispatcher_value,
+            order.operator_name,
+            order.dispatcher_name,
+            order.observations or "",
+        ]
+
+    else:
+        raise ValueError(
+            "Categoria de pedido inválida.",
+        )
+
+    next_row = max(
+        len(worksheet.get_all_values()) + 1,
+        3,
+    )
+
+    worksheet.update(
+        f"A{next_row}:{chr(ord('A') + len(values) - 1)}{next_row}",
+        [values],
+        value_input_option="USER_ENTERED",
+    )
 
 
 def find_order_row(
