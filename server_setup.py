@@ -144,7 +144,7 @@ Preencha:
 - cliente: Nome do cliente
 - CNPJ: CNPJ do cliente
 - pedidos: Tipo de serviço realizado. Descreva o que foi feito, por exemplo: "Alteração + Exclusão" ou "Cadastro + 3 Inclusões"
-- cadastros_reativacoes: Quantidade de serviços que são Cadastros, Reativações ou Inclusões.
+- cadastros_inclusoes: Quantidade de serviços que são Cadastros, Inclusões ou Reativações.
 - alteracoes_exclusoes: Quantidade de serviços que são Alterações ou Exclusões.
 - cursos: Quantidade de cursos, RT ou TAC, realizados. Se não tiver feito um curso, preencha com 0 
 

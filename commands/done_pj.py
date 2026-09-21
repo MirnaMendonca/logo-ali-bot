@@ -14,7 +14,7 @@ def setup_done_pj(bot: discord.Client):
         cliente="Nome do cliente",
         cnpj="CNPJ do cliente",
         pedidos="Pedidos realizados",
-        cadastros_reativacoes="Quantidade de Cadastros/Inclusões/Reativações",
+        cadastros_inclusoes="Quantidade de Cadastros/Inclusões/Reativações",
         alteracoes_exclusoes="Quantidade de Alterações/Exclusões",
         cursos="Quantidade de cursos feitos (RT ou TAC)",
         observacoes="Observações (opcional)",
@@ -25,7 +25,7 @@ def setup_done_pj(bot: discord.Client):
         cliente: str,
         cnpj: str,
         pedidos: str,
-        cadastros_reativacoes: int,
+        cadastros_inclusoes: int,
         alteracoes_exclusoes: int,
         cursos: int,
         observacoes: str | None = None,
@@ -44,7 +44,7 @@ def setup_done_pj(bot: discord.Client):
             amount_fields=[
                 (
                     "Quantidade de Cadastros/Inclusões/Reativações",
-                    cadastros_reativacoes,
+                    cadastros_inclusoes,
                 ),
                 (
                     "Quantidade de Alterações/Exclusões",
@@ -56,7 +56,7 @@ def setup_done_pj(bot: discord.Client):
                 ),
             ],
             create_order_kwargs={
-                "pj_amount_cad_or_reval": cadastros_reativacoes,
+                "pj_amount_cad_or_reval": cadastros_inclusoes,
                 "pj_amount_alt_or_rem": alteracoes_exclusoes,
                 "course_amount": cursos,
             },

@@ -25,7 +25,7 @@ class EditOrderConfirmationModal(discord.ui.Modal):
         documento: str | None,
         pedidos: str | None,
         quantidade_pf: int | None,
-        cadastros_reativacoes: int | None,
+        cadastros_inclusoes: int | None,
         alteracoes_exclusoes: int | None,
         cursos: int | None,
         operador: discord.Member | None,
@@ -44,7 +44,7 @@ class EditOrderConfirmationModal(discord.ui.Modal):
         self.pedidos = pedidos
 
         self.quantidade_pf = quantidade_pf
-        self.cadastros_reativacoes = cadastros_reativacoes
+        self.cadastros_inclusoes = cadastros_inclusoes
         self.alteracoes_exclusoes = alteracoes_exclusoes
         self.cursos = cursos
 
@@ -80,7 +80,7 @@ class EditOrderConfirmationModal(discord.ui.Modal):
                 document=self.documento,
                 order_text=self.pedidos,
                 pf_amount=self.quantidade_pf,
-                pj_amount_cad_or_reval=self.cadastros_reativacoes,
+                pj_amount_cad_or_reval=self.cadastros_inclusoes,
                 pj_amount_alt_or_rem=self.alteracoes_exclusoes,
                 course_amount=self.cursos,
                 operator_discord_id=str(self.operador.id) if self.operador else None,
@@ -145,7 +145,7 @@ def setup_edit_order(bot: discord.Client):
         documento="Novo CPF/CNPJ",
         pedidos="Novo texto dos pedidos",
         quantidade_pf="Quantidade de taxas PF",
-        cadastros_reativacoes="Quantidade de Cadastros/Reativações PJ",
+        cadastros_inclusoes="Quantidade de Cadastros/Inclusões/Reativações PJ",
         alteracoes_exclusoes="Quantidade de Alterações/Exclusões PJ",
         cursos="Quantidade de cursos",
         operador="Novo operador",
@@ -157,7 +157,7 @@ def setup_edit_order(bot: discord.Client):
         documento: str | None = None,
         pedidos: str | None = None,
         quantidade_pf: int | None = None,
-        cadastros_reativacoes: int | None = None,
+        cadastros_inclusoes: int | None = None,
         alteracoes_exclusoes: int | None = None,
         cursos: int | None = None,
         operador: discord.Member | None = None,
@@ -181,7 +181,7 @@ def setup_edit_order(bot: discord.Client):
                 documento,
                 pedidos,
                 quantidade_pf,
-                cadastros_reativacoes,
+                cadastros_inclusoes,
                 alteracoes_exclusoes,
                 cursos,
                 operador,
@@ -213,7 +213,7 @@ def setup_edit_order(bot: discord.Client):
 
             if order_category == "pf":
                 if (
-                    cadastros_reativacoes is not None
+                    cadastros_inclusoes is not None
                     or alteracoes_exclusoes is not None
                 ):
                     await interaction.response.send_message(
@@ -247,7 +247,7 @@ def setup_edit_order(bot: discord.Client):
             documento=documento,
             pedidos=pedidos,
             quantidade_pf=quantidade_pf,
-            cadastros_reativacoes=cadastros_reativacoes,
+            cadastros_inclusoes=cadastros_inclusoes,
             alteracoes_exclusoes=alteracoes_exclusoes,
             cursos=cursos,
             operador=operador,
