@@ -27,7 +27,7 @@ def setup_done_pj(bot: discord.Client):
         pedidos: str,
         cadastros_inclusoes: int,
         alteracoes_exclusoes: int,
-        cursos: int,
+        cursos: int = 0,
         observacoes: str | None = None,
         operador: discord.Member | None = None,
     ):

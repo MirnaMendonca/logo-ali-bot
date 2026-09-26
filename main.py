@@ -57,9 +57,8 @@ setup_daily_report(bot)
 
 
 def is_order_forum(channel):
-    return (
-        isinstance(channel, discord.ForumChannel)
-        and ("pf" in channel.name.lower() or "pj" in channel.name.lower())
+    return isinstance(channel, discord.ForumChannel) and (
+        "pf" in channel.name.lower() or "pj" in channel.name.lower()
     )
 
 
