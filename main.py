@@ -14,6 +14,7 @@ from config import (
 from utils.tags import set_status_tag
 from utils.tags import STATUS_NAMES
 from views.claim_order import ClaimOrderView
+from views.return_order import ReturnOrderView
 
 from commands.register import setup_register
 from commands.done_pf import setup_done_pf
@@ -41,6 +42,7 @@ bot = commands.Bot(
 )
 
 bot.add_view(ClaimOrderView())
+bot.add_view(ReturnOrderView())
 order_reconciliation_lock = asyncio.Lock()
 
 setup_register(bot)
@@ -55,9 +57,8 @@ setup_daily_report(bot)
 
 
 def is_order_forum(channel):
-    return (
-        isinstance(channel, discord.ForumChannel)
-        and ("pf" in channel.name.lower() or "pj" in channel.name.lower())
+    return isinstance(channel, discord.ForumChannel) and (
+        "pf" in channel.name.lower() or "pj" in channel.name.lower()
     )
 
 

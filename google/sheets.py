@@ -12,6 +12,18 @@ SCOPES = [
 
 THREAD_ID_COLUMN = 15
 
+
+def dispatcher_return_column(
+    category: str,
+) -> int:
+    if category == "pf":
+        return 8
+    elif category == "pj":
+        return 9
+    else:
+        raise ValueError("Categoria de pedido inválida.")
+
+
 credentials = Credentials.from_service_account_file(
     "logoali-bot-6a807097c60f.json",
     scopes=SCOPES,
@@ -179,11 +191,11 @@ def append_dispatcher_order(
             order.document,
             order.order,
             order.pf_amount,
-            order.course_amount,
             order.dispatcher_value,
-            order.operator_name,
-            order.dispatcher_name,
+            order.opening_name or "",
+            order.return_name or "",
             order.observations or "",
+            "",
             "",
             "",
             "",
@@ -199,11 +211,11 @@ def append_dispatcher_order(
             order.order,
             order.pj_amount_cad_or_reval,
             order.pj_amount_alt_or_rem,
-            order.course_amount,
             order.dispatcher_value,
-            order.operator_name,
-            order.dispatcher_name,
+            order.opening_name or "",
+            order.return_name or "",
             order.observations or "",
+            "",
             "",
             "",
             "",
@@ -251,6 +263,37 @@ def find_order_row(
             return index
 
     return None
+
+
+def update_dispatcher_return_name(
+    order,
+    return_name: str,
+):
+    worksheet = get_dispatcher_worksheet(
+        order,
+        order.category,
+    )
+
+    if worksheet is None:
+        raise ValueError(
+            "Não há planilha do despachante configurada para este servidor."
+        )
+
+    row = find_order_row(
+        worksheet,
+        order.thread_id,
+    )
+
+    if row is None:
+        raise ValueError(
+            "Pedido não encontrado na planilha do despachante."
+        )
+
+    worksheet.update_cell(
+        row,
+        dispatcher_return_column(order.category),
+        return_name,
+    )
 
 
 def delete_order_from_sheet(
@@ -407,11 +450,11 @@ def update_dispatcher_order_on_sheet(
             order.document,
             order.order,
             order.pf_amount,
-            order.course_amount,
             order.dispatcher_value,
-            order.operator_name,
-            order.dispatcher_name,
+            order.opening_name or "",
+            order.return_name or "",
             order.observations or "",
+            "",
             "",
             "",
             "",
@@ -427,11 +470,11 @@ def update_dispatcher_order_on_sheet(
             order.order,
             order.pj_amount_cad_or_reval,
             order.pj_amount_alt_or_rem,
-            order.course_amount,
             order.dispatcher_value,
-            order.operator_name,
-            order.dispatcher_name,
+            order.opening_name or "",
+            order.return_name or "",
             order.observations or "",
+            "",
             "",
             "",
             "",

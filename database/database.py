@@ -29,9 +29,22 @@ def ensure_schema():
     }
 
     with engine.begin() as connection:
-        if "dispatcher_name" not in order_columns:
+        if "opening_name" not in order_columns:
             connection.execute(
-                text("ALTER TABLE orders ADD COLUMN dispatcher_name VARCHAR")
+                text("ALTER TABLE orders ADD COLUMN opening_name VARCHAR")
+            )
+
+        if "return_name" not in order_columns:
+            connection.execute(
+                text("ALTER TABLE orders ADD COLUMN return_name VARCHAR")
+            )
+
+        if "dispatcher_name" in order_columns:
+            connection.execute(
+                text(
+                    "UPDATE orders SET opening_name = dispatcher_name "
+                    "WHERE opening_name IS NULL AND dispatcher_name IS NOT NULL"
+                )
             )
 
         if "pf_exclusions_pj" not in order_columns:

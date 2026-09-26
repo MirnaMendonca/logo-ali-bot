@@ -7,6 +7,7 @@ from database.order_service import get_existing_order
 from google.sheets import append_dispatcher_order
 from google.sheets import append_order
 from utils.tags import set_status_tag
+from views.return_order import ReturnOrderView
 
 
 def has_tag(
@@ -127,6 +128,8 @@ async def finish_order(
         "Gratuito",
     )
 
+    order = None
+
     if not is_free:
 
         try:
@@ -141,7 +144,7 @@ async def finish_order(
                         thread_id=str(interaction.channel.id),
                         guild_id=str(guild.id),
                         operator_discord_id=str(operador.id),
-                        dispatcher_name=dispatcher.display_name,
+                        opening_name=dispatcher.display_name,
                         order_category=category,
                         client=cliente,
                         document=documento,
@@ -245,4 +248,9 @@ async def finish_order(
 
     await interaction.followup.send(
         embed=embed,
+        view=(
+            ReturnOrderView(return_name=order.return_name)
+            if order is not None
+            else None
+        ),
     )
