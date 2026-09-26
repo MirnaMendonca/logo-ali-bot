@@ -64,7 +64,12 @@ class Order(Base):
         nullable=False,
     )
 
-    dispatcher_name = Column(
+    opening_name = Column(
+        String,
+        nullable=True,
+    )
+
+    return_name = Column(
         String,
         nullable=True,
     )

@@ -67,7 +67,7 @@ def create_order(
     thread_id: str,
     guild_id: str,
     operator_discord_id: str,
-    dispatcher_name: str,
+    opening_name: str,
     client: str,
     document: str,
     order: str,
@@ -117,7 +117,7 @@ def create_order(
             guild_name=guild["dispatcher_name"],
             operator_id=operator.id,
             operator_name=operator.name,
-            dispatcher_name=dispatcher_name,
+            opening_name=opening_name,
             category=order_category,
             client=client,
             document=document,
@@ -147,13 +147,64 @@ def create_order(
 
         return new_order
 
-    except:
+    except Exception:
 
         session.rollback()
         raise
 
     finally:
 
+        session.close()
+
+
+def record_order_return(
+    *,
+    thread_id: str,
+    return_name: str,
+) -> Order:
+    session = SessionLocal()
+
+    try:
+        order = get_order_by_thread_id(
+            session=session,
+            thread_id=thread_id,
+        )
+
+        if order is None:
+            raise ValueError("Pedido não encontrado no banco de dados.")
+
+        if order.return_name is None:
+            updated = (
+                session.query(Order)
+                .filter(
+                    Order.id == order.id,
+                    Order.return_name.is_(None),
+                )
+                .update(
+                    {Order.return_name: return_name},
+                    synchronize_session=False,
+                )
+            )
+
+            if updated:
+                session.commit()
+                session.refresh(order)
+                return order
+
+            session.refresh(order)
+
+        if order.return_name == return_name:
+            return order
+
+        raise ValueError(
+            f"A devolução já foi registrada por **{order.return_name}**."
+        )
+
+    except Exception:
+        session.rollback()
+        raise
+
+    finally:
         session.close()
 
 
