@@ -124,6 +124,7 @@ def get_dispatcher_summary(
 
         query = session.query(
             func.sum(Order.pf_amount),
+            func.sum(Order.pf_exclusions_pj),
             func.sum(Order.pj_amount_cad_or_reval),
             func.sum(Order.pj_amount_alt_or_rem),
             func.sum(Order.course_amount),
@@ -140,17 +141,20 @@ def get_dispatcher_summary(
 
         (
             pf_amount,
+            pf_exclusions_pj,
             pj_amount_cad_or_reval,
             pj_amount_alt_or_rem,
             course_amount,
         ) = query.one()
 
         pf_amount = pf_amount or 0
+        pf_exclusions_pj = pf_exclusions_pj or 0
         pj_amount_cad_or_reval = pj_amount_cad_or_reval or 0
         pj_amount_alt_or_rem = pj_amount_alt_or_rem or 0
         course_amount = course_amount or 0
 
-        pf_value = pf_amount * pf_price
+        pf_exclusion_discount = pf_exclusions_pj * PJ_REFUND_VALUE_ALT_OR_REM
+        pf_value = (pf_amount * pf_price) - pf_exclusion_discount
         course_value = course_amount * COURSE_PRICE
 
         pj_refund_value = (pj_amount_cad_or_reval * PJ_REFUND_VALUE_CAD_OR_REVAL) + (
@@ -159,10 +163,12 @@ def get_dispatcher_summary(
 
         return {
             "pf_amount": pf_amount,
+            "pf_exclusions_pj": pf_exclusions_pj,
             "pj_amount_cad_or_reval": pj_amount_cad_or_reval,
             "pj_amount_alt_or_rem": pj_amount_alt_or_rem,
             "course_amount": course_amount,
             "pf_value": pf_value,
+            "pf_discount_value": pf_exclusion_discount,
             "course_value": course_value,
             "pj_refund_value": pj_refund_value,
             "net_value": (pf_value + course_value - pj_refund_value),

@@ -49,6 +49,8 @@ async def send_daily_report(
         name="PF",
         value=(
             f"Taxas: {dispatcher['pf_amount']}\n"
+            f"Exclusões PJ: {dispatcher['pf_exclusions_pj']}\n"
+            f"Desconto: R$ {dispatcher['pf_discount_value']:.2f}\n"
             f"Valor: R$ {dispatcher['pf_value']:.2f}"
         ),
         inline=False,

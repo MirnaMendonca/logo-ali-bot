@@ -33,3 +33,8 @@ def ensure_schema():
             connection.execute(
                 text("ALTER TABLE orders ADD COLUMN dispatcher_name VARCHAR")
             )
+
+        if "pf_exclusions_pj" not in order_columns:
+            connection.execute(
+                text("ALTER TABLE orders ADD COLUMN pf_exclusions_pj INTEGER NOT NULL DEFAULT 0")
+            )

@@ -95,6 +95,12 @@ class Order(Base):
         nullable=False,
     )
 
+    pf_exclusions_pj = Column(
+        Integer,
+        default=0,
+        nullable=False,
+    )
+
     pj_amount_cad_or_reval = Column(
         Integer,
         default=0,

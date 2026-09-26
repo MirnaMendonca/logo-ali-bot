@@ -15,6 +15,7 @@ def setup_done_pf(bot: discord.Client):
         cpf="CPF do cliente",
         pedidos="Pedidos realizados. Ex: TAC + Cadastro",
         quantidade="Quantidade de taxas cobradas. Ex: um cadastro com duas placas são duas taxas",
+        exclusoes_pj="Quantidade de exclusões no CNPJ antes da inclusão no CPF",
         cursos="Quantidade de cursos feitos (RT ou TAC)",
         observacoes="Observações (opcional)",
         operador="Operador (opcional)",
@@ -25,7 +26,8 @@ def setup_done_pf(bot: discord.Client):
         cpf: str,
         pedidos: str,
         quantidade: int,
-        cursos: int,
+        exclusoes_pj: int,
+        cursos: int = 0,
         observacoes: str | None = None,
         operador: discord.Member | None = None,
     ):
@@ -45,12 +47,17 @@ def setup_done_pf(bot: discord.Client):
                     quantidade,
                 ),
                 (
+                    "Exclusões PJ",
+                    exclusoes_pj,
+                ),
+                (
                     "Quantidade de cursos",
                     cursos,
                 ),
             ],
             create_order_kwargs={
                 "pf_amount": quantidade,
+                "pf_exclusions_pj": exclusoes_pj,
                 "course_amount": cursos,
             },
         )

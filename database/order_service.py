@@ -29,13 +29,18 @@ def calculate_order_values(
     if order.category == "pf":
 
         pf_price = guild["pf_price"]
+        pf_exclusions_pj = order.pf_exclusions_pj or 0
 
-        order.dispatcher_value = (pf_price * order.pf_amount) + (
-            COURSE_PRICE * order.course_amount
+        order.dispatcher_value = (
+            (pf_price * order.pf_amount)
+            + (COURSE_PRICE * order.course_amount)
+            - (PJ_REFUND_VALUE_ALT_OR_REM * pf_exclusions_pj)
         )
 
-        order.operator_value = (PF_OPERATOR_VALUE * order.pf_amount) + (
-            COURSE_PRICE * order.course_amount
+        order.operator_value = (
+            (PF_OPERATOR_VALUE * order.pf_amount)
+            + (COURSE_PRICE * order.course_amount)
+            + (PJ_OPERATOR_VALUE_ALT_OR_REM * pf_exclusions_pj)
         )
 
     elif order.category == "pj":
@@ -68,6 +73,7 @@ def create_order(
     order: str,
     order_category: str,
     pf_amount: int = 0,
+    pf_exclusions_pj: int = 0,
     course_amount: int = 0,
     pj_amount_cad_or_reval: int = 0,
     pj_amount_alt_or_rem: int = 0,
@@ -117,6 +123,7 @@ def create_order(
             document=document,
             order=order,
             pf_amount=pf_amount,
+            pf_exclusions_pj=pf_exclusions_pj,
             course_amount=course_amount,
             pj_amount_cad_or_reval=pj_amount_cad_or_reval,
             pj_amount_alt_or_rem=pj_amount_alt_or_rem,
@@ -209,6 +216,7 @@ def edit_order(
     document: str | None = None,
     order_text: str | None = None,
     pf_amount: int | None = None,
+    pf_exclusions_pj: int | None = None,
     pj_amount_cad_or_reval: int | None = None,
     pj_amount_alt_or_rem: int | None = None,
     course_amount: int | None = None,
@@ -237,6 +245,9 @@ def edit_order(
 
         if pf_amount is not None:
             order.pf_amount = pf_amount
+
+        if pf_exclusions_pj is not None:
+            order.pf_exclusions_pj = pf_exclusions_pj
 
     elif order.category == "pj":
 

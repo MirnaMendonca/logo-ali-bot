@@ -134,6 +134,7 @@ Preencha:
 - CPF: CPF do cliente
 - pedidos: Tipo de serviço realizado. Descreva o que foi feito, por exemplo: "TAC + Cadastro" ou "Mercosul com arrendamento"
 - quantidade: Quantidade de taxas cobradas. Por exemplo: um cadastro com 3 placas são 3 taxas, inclusão de 2 placas são 2 taxas.
+- exclusoes_pj: Quantidade de exclusões no CNPJ antes da inclusão no CPF.
 - cursos: Quantidade de cursos, RT ou TAC, realizados. Se não tiver feito um curso, preencha com 0 
 
 ### Em pedidos PJ

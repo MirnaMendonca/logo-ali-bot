@@ -104,6 +104,8 @@ def setup_report_dispatcher(bot: discord.Client):
             name="PF",
             value=(
                 f"Taxas: {summary['pf_amount']}\n"
+                f"Exclusões PJ: {summary['pf_exclusions_pj']}\n"
+                f"Desconto: R$ {summary['pf_discount_value']:.2f}\n"
                 f"Valor: R$ {summary['pf_value']:.2f}"
             ),
             inline=False,

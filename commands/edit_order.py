@@ -25,6 +25,7 @@ class EditOrderConfirmationModal(discord.ui.Modal):
         documento: str | None,
         pedidos: str | None,
         quantidade_pf: int | None,
+        exclusoes_pj: int | None,
         cadastros_inclusoes: int | None,
         alteracoes_exclusoes: int | None,
         cursos: int | None,
@@ -44,6 +45,7 @@ class EditOrderConfirmationModal(discord.ui.Modal):
         self.pedidos = pedidos
 
         self.quantidade_pf = quantidade_pf
+        self.exclusoes_pj = exclusoes_pj
         self.cadastros_inclusoes = cadastros_inclusoes
         self.alteracoes_exclusoes = alteracoes_exclusoes
         self.cursos = cursos
@@ -80,6 +82,7 @@ class EditOrderConfirmationModal(discord.ui.Modal):
                 document=self.documento,
                 order_text=self.pedidos,
                 pf_amount=self.quantidade_pf,
+                pf_exclusions_pj=self.exclusoes_pj,
                 pj_amount_cad_or_reval=self.cadastros_inclusoes,
                 pj_amount_alt_or_rem=self.alteracoes_exclusoes,
                 course_amount=self.cursos,
@@ -145,6 +148,7 @@ def setup_edit_order(bot: discord.Client):
         documento="Novo CPF/CNPJ",
         pedidos="Novo texto dos pedidos",
         quantidade_pf="Quantidade de taxas PF",
+        exclusoes_pj="Quantidade de exclusões PJ para pedidos PF",
         cadastros_inclusoes="Quantidade de Cadastros/Inclusões/Reativações PJ",
         alteracoes_exclusoes="Quantidade de Alterações/Exclusões PJ",
         cursos="Quantidade de cursos",
@@ -157,6 +161,7 @@ def setup_edit_order(bot: discord.Client):
         documento: str | None = None,
         pedidos: str | None = None,
         quantidade_pf: int | None = None,
+        exclusoes_pj: int | None = None,
         cadastros_inclusoes: int | None = None,
         alteracoes_exclusoes: int | None = None,
         cursos: int | None = None,
@@ -181,6 +186,7 @@ def setup_edit_order(bot: discord.Client):
                 documento,
                 pedidos,
                 quantidade_pf,
+                exclusoes_pj,
                 cadastros_inclusoes,
                 alteracoes_exclusoes,
                 cursos,
@@ -223,9 +229,9 @@ def setup_edit_order(bot: discord.Client):
                     return
 
             elif order_category == "pj":
-                if quantidade_pf is not None:
+                if quantidade_pf is not None or exclusoes_pj is not None:
                     await interaction.response.send_message(
-                        "Este pedido é **PJ**. Não é possível editar a quantidade de taxas PF.",
+                        "Este pedido é **PJ**. Não é possível editar a quantidade de taxas PF nem as exclusões PJ.",
                         ephemeral=True,
                     )
                     return
@@ -247,6 +253,7 @@ def setup_edit_order(bot: discord.Client):
             documento=documento,
             pedidos=pedidos,
             quantidade_pf=quantidade_pf,
+            exclusoes_pj=exclusoes_pj,
             cadastros_inclusoes=cadastros_inclusoes,
             alteracoes_exclusoes=alteracoes_exclusoes,
             cursos=cursos,
