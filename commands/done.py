@@ -248,9 +248,9 @@ async def finish_order(
 
     await interaction.followup.send(
         embed=embed,
-        view=(
-            ReturnOrderView(return_name=order.return_name)
+        **(
+            {"view": ReturnOrderView(return_name=order.return_name)}
             if order is not None
-            else None
+            else {}
         ),
     )
