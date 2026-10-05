@@ -24,7 +24,7 @@ async def finish_order(
     category: str,
     cliente: str,
     documento: str,
-    pedidos: str,
+    descricao_servicos: str,
     operador: discord.Member | None,
     observacoes: str | None,
     embed_title: str,
@@ -148,7 +148,7 @@ async def finish_order(
                         order_category=category,
                         client=cliente,
                         document=documento,
-                        order=pedidos,
+                        order=descricao_servicos,
                         observations=observacoes,
                         **create_order_kwargs,
                     )
@@ -211,8 +211,8 @@ async def finish_order(
     )
 
     embed.add_field(
-        name="Pedidos",
-        value=pedidos,
+        name="Descrição dos serviços",
+        value=descricao_servicos,
         inline=False,
     )
 
