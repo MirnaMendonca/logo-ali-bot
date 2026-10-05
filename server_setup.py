@@ -132,7 +132,7 @@ Preencha:
 
 - cliente: Nome do cliente
 - CPF: CPF do cliente
-- pedidos: Tipo de serviço realizado. Descreva o que foi feito, por exemplo: "TAC + Cadastro" ou "Mercosul com arrendamento"
+- descricao_servicos: Descreva os serviços realizados, por exemplo: "TAC + Cadastro" ou "Mercosul com arrendamento"
 - quantidade: Quantidade de taxas cobradas. Por exemplo: um cadastro com 3 placas são 3 taxas, inclusão de 2 placas são 2 taxas.
 - exclusoes_pj: Quantidade de exclusões no CNPJ antes da inclusão no CPF.
 - cursos: Quantidade de cursos, RT ou TAC, realizados. Se não tiver feito um curso, preencha com 0 
@@ -144,7 +144,7 @@ Preencha:
 
 - cliente: Nome do cliente
 - CNPJ: CNPJ do cliente
-- pedidos: Tipo de serviço realizado. Descreva o que foi feito, por exemplo: "Alteração + Exclusão" ou "Cadastro + 3 Inclusões"
+- descricao_servicos: Descreva os serviços realizados, por exemplo: "Alteração + Exclusão" ou "Cadastro + 3 Inclusões"
 - cadastros_inclusoes: Quantidade de serviços que são Cadastros, Inclusões ou Reativações.
 - alteracoes_exclusoes: Quantidade de serviços que são Alterações ou Exclusões.
 - cursos: Quantidade de cursos, RT ou TAC, realizados. Se não tiver feito um curso, preencha com 0 
