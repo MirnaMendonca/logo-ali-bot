@@ -4,6 +4,7 @@ import os
 
 import discord
 
+from database.reports import get_daily_closing_period
 from database.reports import get_general_summary
 from utils.excel import generate_daily_excel
 
@@ -23,6 +24,7 @@ async def send_daily_report(
         date = datetime.now(BRASIL)
 
     today = date.date()
+    start_date, end_date = get_daily_closing_period(date)
 
     channel = discord.utils.get(
         guild.text_channels,
@@ -36,6 +38,8 @@ async def send_daily_report(
 
     summary = get_general_summary(
         guild_id=str(guild.id),
+        start_date=start_date,
+        end_date=end_date,
     )
 
     dispatcher = summary["dispatcher"]
@@ -135,13 +139,18 @@ async def send_daily_report(
 
     excel_path = generate_daily_excel(
         guild_id=str(guild.id),
-        date=date,
+        start_date=start_date,
+        end_date=end_date,
     )
 
     try:
 
         await order_reports_channel.send(
-            content=(f"📄 **Pedidos do dia " f"{today.strftime('%d/%m/%Y')}:**"),
+            content=(
+                f"📄 **Pedidos do fechamento de "
+                f"{today.strftime('%d/%m/%Y')} "
+                f"(20h do dia anterior até 20h de hoje):**"
+            ),
             file=discord.File(excel_path),
         )
 
@@ -161,7 +170,7 @@ async def send_daily_reports(
 
         now = datetime.now(BRASIL)
 
-        if now.hour == 23:
+        if now.hour >= 20:
 
             today = now.date()
 
@@ -184,7 +193,7 @@ async def send_daily_reports(
                     print(f"Erro ao enviar relatório de " f"{guild.name}: {e}")
 
         #
-        # Dorme uma hora
+        # Verifica o horário do fechamento a cada minuto.
         #
 
-        await asyncio.sleep(3600)
+        await asyncio.sleep(60)

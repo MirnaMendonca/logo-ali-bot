@@ -9,7 +9,8 @@ from database.reports import get_orders
 def generate_daily_excel(
     *,
     guild_id: str,
-    date: datetime,
+    start_date: datetime,
+    end_date: datetime,
 ) -> str:
 
     workbook = Workbook()
@@ -50,29 +51,10 @@ def generate_daily_excel(
         ]
     )
 
-    start = datetime(
-        date.year,
-        date.month,
-        date.day,
-    )
-
-    end = start.replace(
-        hour=0,
-        minute=0,
-        second=0,
-        microsecond=0,
-    )
-
-    from datetime import timedelta
-
-    end += timedelta(
-        days=1,
-    )
-
     orders = get_orders(
         guild_id=guild_id,
-        start_date=start,
-        end_date=end,
+        start_date=start_date,
+        end_date=end_date,
     )
 
     for order in orders:
@@ -112,7 +94,7 @@ def generate_daily_excel(
 
     filename = (
         Path(__file__).parent
-        / f"fechamento-{guild_id}-{date.strftime('%Y-%m-%d')}.xlsx"
+        / f"fechamento-{guild_id}-{end_date.strftime('%Y-%m-%d')}.xlsx"
     )
 
     workbook.save(

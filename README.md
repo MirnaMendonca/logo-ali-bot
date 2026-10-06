@@ -97,7 +97,7 @@ Mostra:
 
 ## Relatórios automáticos
 
-Todos os dias o bot envia automaticamente um relatório no canal #relatorios
+Todos os dias às 20h o bot envia automaticamente o fechamento diário nos canais de relatório. Cada fechamento considera os pedidos concluídos entre 20h do dia anterior (inclusive) e 20h do dia do fechamento (exclusive). Assim, pedidos concluídos após as 20h entram no fechamento do dia seguinte.
 
 Na sexta-feira também envia o fechamento semanal dos operadores.
 
