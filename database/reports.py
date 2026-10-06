@@ -19,6 +19,8 @@ BRASIL = timezone(
     timedelta(hours=-3),
 )
 
+DAILY_CLOSING_HOUR = 20
+
 
 def start_of_today():
 
@@ -29,6 +31,20 @@ def start_of_today():
         now.month,
         now.day,
     )
+
+
+def get_daily_closing_period(
+    date: datetime,
+):
+
+    end = datetime(
+        date.year,
+        date.month,
+        date.day,
+        DAILY_CLOSING_HOUR,
+    )
+
+    return end - timedelta(days=1), end
 
 
 def start_of_month():
@@ -181,6 +197,8 @@ def get_dispatcher_summary(
 
 def get_general_summary(
     guild_id: str,
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
 ):
 
     session = SessionLocal()
@@ -189,7 +207,8 @@ def get_general_summary(
 
         dispatcher = get_dispatcher_summary(
             guild_id=guild_id,
-            start_date=start_of_today(),
+            start_date=start_date or start_of_today(),
+            end_date=end_date,
         )
 
         week_start = start_of_payment_week()
