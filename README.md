@@ -53,6 +53,10 @@ Pedidos podem ser enviados diretamente para revisão quando necessário.
 O sistema possui três tipos de relatório, que podem ser consultados nos períodos "hoje", "mês" e "período personalizado".
 Os relatórios são privados e, com exceção do relatório geral, não pode ser lido por ninguém além da pessoa que enviou o comando.
 
+### Análise de planilha
+
+O comando `/analisar-planilha`, disponível apenas para administradores, recebe o relatório `.xlsx` e agrupa por operador a quantidade de pedidos em cada dia e no período completo. Dias sem pedidos aparecem com quantidade zero. Se o resumo for longo, ele é enviado em um arquivo de texto privado.
+
 ### Relatório do operador
 
 ```/relatorio-operador```

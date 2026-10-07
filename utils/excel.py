@@ -1,9 +1,130 @@
+from io import BytesIO
+from collections import Counter, defaultdict
+from datetime import date, datetime, timedelta
 from pathlib import Path
-from datetime import datetime
+import warnings
 
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 
 from database.reports import get_orders
+
+
+def summarize_orders_by_operator(
+    file_content: bytes,
+) -> tuple[dict[date, dict[str, int]], dict[str, int]]:
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message="^Workbook contains no default style, apply openpyxl's default$",
+            category=UserWarning,
+            module=r"openpyxl\.styles\.stylesheet",
+        )
+        workbook = load_workbook(
+            BytesIO(file_content),
+            read_only=True,
+            data_only=True,
+        )
+
+    try:
+        if not workbook.worksheets:
+            raise ValueError("A planilha não contém abas.")
+
+        worksheet = workbook.worksheets[0]
+        daily_counts: defaultdict[date, Counter[str]] = defaultdict(Counter)
+        totals: Counter[str] = Counter()
+
+        for row_number, row in enumerate(
+            worksheet.iter_rows(
+                min_row=9,
+                values_only=True,
+            ),
+            start=9,
+        ):
+            order_date = row[2] if len(row) > 2 else None
+            operator = row[6] if len(row) > 6 else None
+
+            if order_date is None and operator is None:
+                continue
+            if (
+                order_date is None
+                or not isinstance(operator, str)
+                or not operator.strip()
+            ):
+                raise ValueError(
+                    f"Registro incompleto na linha {row_number} da aba "
+                    f"'{worksheet.title}'."
+                )
+
+            if isinstance(order_date, datetime):
+                parsed_date = order_date.date()
+            elif isinstance(order_date, date):
+                parsed_date = order_date
+            elif isinstance(order_date, str):
+                try:
+                    parsed_date = datetime.strptime(
+                        order_date.strip(),
+                        "%d/%m/%Y",
+                    ).date()
+                except ValueError as error:
+                    raise ValueError(
+                        f"Data inválida na linha {row_number} da aba "
+                        f"'{worksheet.title}'."
+                    ) from error
+            else:
+                raise ValueError(
+                    f"Data inválida na linha {row_number} da aba "
+                    f"'{worksheet.title}'."
+                )
+
+            operator_name = operator.strip()
+            daily_counts[parsed_date][operator_name] += 1
+            totals[operator_name] += 1
+
+        return (
+            {day: dict(counts) for day, counts in sorted(daily_counts.items())},
+            dict(totals),
+        )
+    finally:
+        workbook.close()
+
+
+def format_operator_summary(
+    daily_counts: dict[date, dict[str, int]],
+    totals: dict[str, int],
+) -> str:
+    if not daily_counts:
+        return "Não encontrei pedidos válidos nessa planilha."
+
+    period = (
+        f"{min(daily_counts).strftime('%d/%m/%Y')} a "
+        f"{max(daily_counts).strftime('%d/%m/%Y')}"
+    )
+    lines = [
+        "Resumo de pedidos por operador",
+        f"Período: {period}",
+    ]
+
+    first_day = min(daily_counts)
+    last_day = max(daily_counts)
+    for operator, total in sorted(
+        totals.items(),
+        key=lambda item: (-item[1], item[0].casefold()),
+    ):
+        lines.append(f"\n{operator}:")
+        day = first_day
+        while day <= last_day:
+            count = daily_counts.get(day, {}).get(operator, 0)
+            lines.append(f"- {day.strftime('%d/%m/%Y')}: {count} pedidos")
+            day += timedelta(days=1)
+
+    lines.append("\nTOTAIS")
+    for operator, total in sorted(
+        totals.items(),
+        key=lambda item: (-item[1], item[0].casefold()),
+    ):
+        lines.append(f"- {operator}: {total}")
+
+    return "\n".join(lines)
 
 
 def generate_daily_excel(
