@@ -10,13 +10,19 @@ class ReturnOrderView(discord.ui.View):
         self,
         *,
         return_name: str | None = None,
+        persist_return: bool = True,
     ):
         super().__init__(timeout=None)
+        self.persist_return = persist_return
         if return_name is not None:
             for item in self.children:
                 if isinstance(item, discord.ui.Button):
                     item.label = f"Devolução registrada: {return_name}"
                     item.disabled = True
+        if not persist_return:
+            for item in self.children:
+                if isinstance(item, discord.ui.Button):
+                    item.custom_id = "record_free_order_return"
 
     @discord.ui.button(
         label="Registrar devolução",
@@ -67,6 +73,15 @@ class ReturnOrderView(discord.ui.View):
             return
 
         return_name = interaction.user.display_name
+
+        if not self.persist_return:
+            await interaction.response.edit_message(
+                view=ReturnOrderView(
+                    return_name=return_name,
+                    persist_return=False,
+                ),
+            )
+            return
 
         try:
             order = record_order_return(
