@@ -43,6 +43,7 @@ bot = commands.Bot(
 
 bot.add_view(ClaimOrderView())
 bot.add_view(ReturnOrderView())
+bot.add_view(ReturnOrderView(persist_return=False))
 order_reconciliation_lock = asyncio.Lock()
 
 setup_register(bot)
