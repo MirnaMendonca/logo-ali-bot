@@ -6,6 +6,9 @@ from pathlib import Path
 import warnings
 
 from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.worksheet import Worksheet
 
 from database.reports import get_orders
 
@@ -124,58 +127,161 @@ def summarize_orders_by_operator(
         workbook.close()
 
 
-def format_operator_summary(
+def create_operator_analysis_workbook(
     daily_counts: dict[date, dict[str, dict[str, int]]],
     totals: dict[str, dict[str, int]],
-) -> str:
-    if not daily_counts:
-        return "Não encontrei pedidos válidos nessa planilha."
-
-    period = (
-        f"{min(daily_counts).strftime('%d/%m/%Y')} a "
-        f"{max(daily_counts).strftime('%d/%m/%Y')}"
-    )
-    lines = [
-        "Resumo de pedidos por operador",
-        f"Período: {period}",
-    ]
+    discord_counts: dict[date, int],
+) -> bytes:
+    workbook = Workbook()
+    daily_sheet = workbook.active
+    daily_sheet.title = "Totais diários"
+    operator_daily_sheet = workbook.create_sheet("Por operador")
+    operator_totals_sheet = workbook.create_sheet("Totais por operador")
 
     first_day = min(daily_counts)
     last_day = max(daily_counts)
-    for operator, total in sorted(
+
+    daily_headers = [
+        "Data",
+        "Com valor (planilha)",
+        "Gratuitos (planilha)",
+        "Total planilha",
+        "Registrados no Discord",
+    ]
+    daily_sheet.append(daily_headers)
+    paid_total = 0
+    free_total = 0
+    discord_total = 0
+    day = first_day
+    while day <= last_day:
+        counts = daily_counts.get(day, {})
+        paid = sum(
+            operator_counts.get("paid", 0) for operator_counts in counts.values()
+        )
+        free = sum(
+            operator_counts.get("free", 0) for operator_counts in counts.values()
+        )
+        discord_count = discord_counts.get(day, 0)
+        daily_sheet.append([day, paid, free, paid + free, discord_count])
+        paid_total += paid
+        free_total += free
+        discord_total += discord_count
+        day += timedelta(days=1)
+
+    daily_sheet.append(
+        [
+            "TOTAL DO PERÍODO",
+            paid_total,
+            free_total,
+            paid_total + free_total,
+            discord_total,
+        ]
+    )
+
+    operator_order = sorted(
         totals.items(),
         key=lambda item: (
             -(item[1].get("paid", 0) + item[1].get("free", 0)),
             item[0].casefold(),
         ),
-    ):
-        lines.append(f"\n{operator}:")
+    )
+
+    operator_daily_sheet.append(
+        ["Operador", "Data", "Com valor", "Gratuitos", "Total de pedidos"]
+    )
+    for operator, _ in operator_order:
         day = first_day
         while day <= last_day:
             counts = daily_counts.get(day, {}).get(operator, {})
             paid = counts.get("paid", 0)
             free = counts.get("free", 0)
-            lines.append(
-                f"- {day.strftime('%d/%m/%Y')}: " f"{paid} com valor | {free} gratuitos"
-            )
+            operator_daily_sheet.append([operator, day, paid, free, paid + free])
             day += timedelta(days=1)
 
-    lines.append("\nTOTAIS")
-    for operator, counts in sorted(
-        totals.items(),
-        key=lambda item: (
-            -(item[1].get("paid", 0) + item[1].get("free", 0)),
-            item[0].casefold(),
-        ),
-    ):
+    operator_totals_sheet.append(
+        ["Operador", "Com valor", "Gratuitos", "Total de pedidos"]
+    )
+    for operator, counts in operator_order:
         paid = counts.get("paid", 0)
         free = counts.get("free", 0)
-        lines.append(
-            f"- {operator}: {paid} com valor | {free} gratuitos "
-            f"| {paid + free} pedidos"
+        operator_totals_sheet.append([operator, paid, free, paid + free])
+
+    _style_analysis_sheet(
+        daily_sheet,
+        [16, 24, 24, 18, 25],
+        total_row=daily_sheet.max_row,
+    )
+    _style_analysis_sheet(
+        operator_daily_sheet,
+        [40, 16, 16, 16, 20],
+    )
+    _style_analysis_sheet(
+        operator_totals_sheet,
+        [40, 16, 16, 20],
+    )
+
+    output = BytesIO()
+    workbook.save(output)
+    workbook.close()
+    return output.getvalue()
+
+
+def _style_analysis_sheet(
+    worksheet: Worksheet,
+    column_widths: list[int],
+    total_row: int | None = None,
+) -> None:
+    header_fill = PatternFill("solid", fgColor="1F4E78")
+    total_fill = PatternFill("solid", fgColor="D9EAF7")
+    alternate_fill = PatternFill("solid", fgColor="F3F6FA")
+    bottom_border = Border(bottom=Side(style="thin", color="D9E2F3"))
+
+    worksheet.freeze_panes = "A2"
+    worksheet.sheet_view.showGridLines = False
+    worksheet.row_dimensions[1].height = 32
+
+    for cell in worksheet[1]:
+        cell.fill = header_fill
+        cell.font = Font(color="FFFFFF", bold=True)
+        cell.alignment = Alignment(
+            horizontal="center", vertical="center", wrap_text=True
         )
 
-    return "\n".join(lines)
+    for row_number in range(2, worksheet.max_row + 1):
+        is_total = row_number == total_row
+        fill = (
+            total_fill
+            if is_total
+            else (alternate_fill if row_number % 2 == 0 else None)
+        )
+        for cell in worksheet[row_number]:
+            if fill is not None:
+                cell.fill = fill
+            cell.border = bottom_border
+            cell.alignment = Alignment(vertical="center")
+            if isinstance(cell.value, (int, float)):
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+            if is_total:
+                cell.font = Font(bold=True)
+        if isinstance(worksheet.cell(row_number, 1).value, date):
+            worksheet.cell(row_number, 1).number_format = "dd/mm/yyyy"
+        if worksheet.title == "Por operador" and isinstance(
+            worksheet.cell(row_number, 2).value,
+            date,
+        ):
+            worksheet.cell(row_number, 2).number_format = "dd/mm/yyyy"
+
+    for column_number, width in enumerate(column_widths, start=1):
+        worksheet.column_dimensions[get_column_letter(column_number)].width = width
+
+    if total_row is None:
+        worksheet.auto_filter.ref = (
+            f"A1:{get_column_letter(len(column_widths))}{worksheet.max_row}"
+        )
+    elif total_row > 2:
+        worksheet.auto_filter.ref = (
+            f"A1:{get_column_letter(len(column_widths))}{total_row - 1}"
+        )
 
 
 def generate_daily_excel(

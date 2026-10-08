@@ -55,7 +55,7 @@ Os relatórios são privados e, com exceção do relatório geral, não pode ser
 
 ### Análise de planilha
 
-O comando `/analisar-planilha`, disponível apenas para administradores, recebe o relatório `.xlsx` e agrupa por operador a quantidade de pedidos com valor e gratuitos (valor total igual a zero) em cada dia e no período completo. Dias sem pedidos aparecem com quantidade zero. Se o resumo for longo, ele é enviado em um arquivo de texto privado.
+O comando `/analisar-planilha`, disponível apenas para administradores, recebe o relatório `.xlsx` e envia uma planilha privada com os totais diários de pedidos com valor, gratuitos (valor total igual a zero) e registrados no banco do servidor Discord atual (pela data de finalização). A planilha também inclui os detalhes diários e os totais do período por operador.
 
 ### Relatório do operador
 
