@@ -19,22 +19,16 @@ def calculate_order_values(
     order: Order,
 ):
 
-    guild = GUILDS.get(
-        int(order.guild_id),
-    )
-
-    if guild is None:
-        raise ValueError("Este servidor não possui configuração.")
-
     if order.category == "pf":
 
-        pf_price = guild["pf_price"]
         pf_exclusions_pj = order.pf_exclusions_pj or 0
 
-        order.dispatcher_value = (
-            (pf_price * order.pf_amount)
-            + (COURSE_PRICE * order.course_amount)
-            - (PJ_REFUND_VALUE_ALT_OR_REM * pf_exclusions_pj)
+        order.dispatcher_value = calculate_dispatcher_value(
+            category=order.category,
+            guild_id=order.guild_id,
+            pf_amount=order.pf_amount,
+            pf_exclusions_pj=pf_exclusions_pj,
+            course_amount=order.course_amount,
         )
 
         order.operator_value = (
@@ -45,10 +39,12 @@ def calculate_order_values(
 
     elif order.category == "pj":
 
-        order.dispatcher_value = (
-            (PJ_REFUND_VALUE_CAD_OR_REVAL * order.pj_amount_cad_or_reval)
-            + (PJ_REFUND_VALUE_ALT_OR_REM * order.pj_amount_alt_or_rem)
-            + (COURSE_PRICE * order.course_amount)
+        order.dispatcher_value = calculate_dispatcher_value(
+            category=order.category,
+            guild_id=order.guild_id,
+            pj_amount_cad_or_reval=order.pj_amount_cad_or_reval,
+            pj_amount_alt_or_rem=order.pj_amount_alt_or_rem,
+            course_amount=order.course_amount,
         )
 
         order.operator_value = (
@@ -60,6 +56,41 @@ def calculate_order_values(
     else:
 
         raise ValueError("Categoria de pedido inválida.")
+
+
+def calculate_dispatcher_value(
+    *,
+    category: str,
+    guild_id: str,
+    pf_amount: int = 0,
+    pf_exclusions_pj: int = 0,
+    course_amount: int = 0,
+    pj_amount_cad_or_reval: int = 0,
+    pj_amount_alt_or_rem: int = 0,
+) -> int:
+
+    guild = GUILDS.get(
+        int(guild_id),
+    )
+
+    if guild is None:
+        raise ValueError("Este servidor não possui configuração.")
+
+    if category == "pf":
+        return (
+            (guild["pf_price"] * pf_amount)
+            + (COURSE_PRICE * course_amount)
+            - (PJ_REFUND_VALUE_ALT_OR_REM * pf_exclusions_pj)
+        )
+
+    if category == "pj":
+        return (
+            (PJ_REFUND_VALUE_CAD_OR_REVAL * pj_amount_cad_or_reval)
+            + (PJ_REFUND_VALUE_ALT_OR_REM * pj_amount_alt_or_rem)
+            + (COURSE_PRICE * course_amount)
+        )
+
+    raise ValueError("Categoria de pedido inválida.")
 
 
 def create_order(

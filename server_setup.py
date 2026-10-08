@@ -151,7 +151,9 @@ Preencha:
 
 ## 2. Pedido gratuito
 
-Se o pedido possuir a tag :free: Gratuito finalize-o normalmente. Ele não será contabilizado financeiramente.
+Se o pedido PF possuir a tag :free: Gratuito finalize-o normalmente. Ele não será contabilizado financeiramente.
+Pedidos PF sem taxa só podem ser finalizados com essa tag. Consulte o tutorial **Adicionando e Removendo Tags** no canal #como-usar para saber como adicioná-la.
+Pedidos PJ não podem ser gratuitos e não podem ser finalizados sem taxa.
 
 ## Parâmetros opcionais
  Além dos campos obrigatórios, também é possível enviar outras informações ao finalizar um pedido.
@@ -211,7 +213,7 @@ Exemplos:
 - Exclusão
 - Gerar carteirinha ou extrato
 
-Quando um pedido está com essa tag, o comando `/feito-pf` ou `/feito-pj` **não cobra o serviço**.
+Quando um pedido PF está com essa tag, o comando `/feito-pf` **não cobra o serviço**.
 
 ## :red_circle: Com pendência
 
