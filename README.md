@@ -55,7 +55,7 @@ Os relatórios são privados e, com exceção do relatório geral, não pode ser
 
 ### Análise de planilha
 
-O comando `/analisar-planilha`, disponível apenas para administradores, recebe o relatório `.xlsx` e agrupa por operador a quantidade de pedidos em cada dia e no período completo. Dias sem pedidos aparecem com quantidade zero. Se o resumo for longo, ele é enviado em um arquivo de texto privado.
+O comando `/analisar-planilha`, disponível apenas para administradores, recebe o relatório `.xlsx` e agrupa por operador a quantidade de pedidos com valor e gratuitos (valor total igual a zero) em cada dia e no período completo. Dias sem pedidos aparecem com quantidade zero. Se o resumo for longo, ele é enviado em um arquivo de texto privado.
 
 ### Relatório do operador
 

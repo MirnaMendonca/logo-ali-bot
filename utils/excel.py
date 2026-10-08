@@ -1,6 +1,7 @@
 from io import BytesIO
 from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 import warnings
 
@@ -9,9 +10,33 @@ from openpyxl import Workbook, load_workbook
 from database.reports import get_orders
 
 
+def _parse_order_amount(value: object, row_number: int, worksheet_name: str) -> Decimal:
+    if isinstance(value, (int, float, Decimal)):
+        return Decimal(str(value))
+
+    if isinstance(value, str):
+        normalized_value = value.strip()
+        if "," in normalized_value:
+            normalized_value = normalized_value.replace(".", "").replace(",", ".")
+        try:
+            return Decimal(normalized_value)
+        except InvalidOperation as error:
+            raise ValueError(
+                f"Valor total inválido na linha {row_number} da aba "
+                f"'{worksheet_name}'."
+            ) from error
+
+    raise ValueError(
+        f"Valor total inválido na linha {row_number} da aba '{worksheet_name}'."
+    )
+
+
 def summarize_orders_by_operator(
     file_content: bytes,
-) -> tuple[dict[date, dict[str, int]], dict[str, int]]:
+) -> tuple[
+    dict[date, dict[str, dict[str, int]]],
+    dict[str, dict[str, int]],
+]:
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
@@ -30,8 +55,10 @@ def summarize_orders_by_operator(
             raise ValueError("A planilha não contém abas.")
 
         worksheet = workbook.worksheets[0]
-        daily_counts: defaultdict[date, Counter[str]] = defaultdict(Counter)
-        totals: Counter[str] = Counter()
+        daily_counts: defaultdict[date, defaultdict[str, Counter[str]]] = defaultdict(
+            lambda: defaultdict(Counter)
+        )
+        totals: defaultdict[str, Counter[str]] = defaultdict(Counter)
 
         for row_number, row in enumerate(
             worksheet.iter_rows(
@@ -42,6 +69,7 @@ def summarize_orders_by_operator(
         ):
             order_date = row[2] if len(row) > 2 else None
             operator = row[6] if len(row) > 6 else None
+            order_amount = row[15] if len(row) > 15 else None
 
             if order_date is None and operator is None:
                 continue
@@ -77,20 +105,28 @@ def summarize_orders_by_operator(
                 )
 
             operator_name = operator.strip()
-            daily_counts[parsed_date][operator_name] += 1
-            totals[operator_name] += 1
+            amount = _parse_order_amount(order_amount, row_number, worksheet.title)
+            category = "free" if amount == 0 else "paid"
+            daily_counts[parsed_date][operator_name][category] += 1
+            totals[operator_name][category] += 1
 
         return (
-            {day: dict(counts) for day, counts in sorted(daily_counts.items())},
-            dict(totals),
+            {
+                day: {
+                    operator: dict(counts)
+                    for operator, counts in operator_counts.items()
+                }
+                for day, operator_counts in sorted(daily_counts.items())
+            },
+            {operator: dict(counts) for operator, counts in totals.items()},
         )
     finally:
         workbook.close()
 
 
 def format_operator_summary(
-    daily_counts: dict[date, dict[str, int]],
-    totals: dict[str, int],
+    daily_counts: dict[date, dict[str, dict[str, int]]],
+    totals: dict[str, dict[str, int]],
 ) -> str:
     if not daily_counts:
         return "Não encontrei pedidos válidos nessa planilha."
@@ -108,21 +144,36 @@ def format_operator_summary(
     last_day = max(daily_counts)
     for operator, total in sorted(
         totals.items(),
-        key=lambda item: (-item[1], item[0].casefold()),
+        key=lambda item: (
+            -(item[1].get("paid", 0) + item[1].get("free", 0)),
+            item[0].casefold(),
+        ),
     ):
         lines.append(f"\n{operator}:")
         day = first_day
         while day <= last_day:
-            count = daily_counts.get(day, {}).get(operator, 0)
-            lines.append(f"- {day.strftime('%d/%m/%Y')}: {count} pedidos")
+            counts = daily_counts.get(day, {}).get(operator, {})
+            paid = counts.get("paid", 0)
+            free = counts.get("free", 0)
+            lines.append(
+                f"- {day.strftime('%d/%m/%Y')}: " f"{paid} com valor | {free} gratuitos"
+            )
             day += timedelta(days=1)
 
     lines.append("\nTOTAIS")
-    for operator, total in sorted(
+    for operator, counts in sorted(
         totals.items(),
-        key=lambda item: (-item[1], item[0].casefold()),
+        key=lambda item: (
+            -(item[1].get("paid", 0) + item[1].get("free", 0)),
+            item[0].casefold(),
+        ),
     ):
-        lines.append(f"- {operator}: {total}")
+        paid = counts.get("paid", 0)
+        free = counts.get("free", 0)
+        lines.append(
+            f"- {operator}: {paid} com valor | {free} gratuitos "
+            f"| {paid + free} pedidos"
+        )
 
     return "\n".join(lines)
 
