@@ -27,7 +27,7 @@ class ReturnOrderView(discord.ui.View):
     @discord.ui.button(
         label="Registrar devolução",
         emoji="↩️",
-        style=discord.ButtonStyle.primary,
+        style=discord.ButtonStyle.danger,
         custom_id="record_order_return",
     )
     async def record_return(
