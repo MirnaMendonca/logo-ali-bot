@@ -46,11 +46,6 @@ Apenas você poderá visualizar esse relatório.
 
 ### `/relatorio-operador`
 
----
-## 🏢 Despachantes
-
-### `/relatorio-despachante`
-
 """
 
 
@@ -151,7 +146,9 @@ Preencha:
 
 ## 2. Pedido gratuito
 
-Se o pedido possuir a tag :free: Gratuito finalize-o normalmente. Ele não será contabilizado financeiramente.
+Se o pedido PF possuir a tag :free: Gratuito finalize-o normalmente. Ele não será contabilizado financeiramente.
+Pedidos PF sem taxa só podem ser finalizados com essa tag. Consulte o tutorial **Adicionando e Removendo Tags** no canal #como-usar para saber como adicioná-la.
+Pedidos PJ não podem ser gratuitos e não podem ser finalizados sem taxa.
 
 ## Parâmetros opcionais
  Além dos campos obrigatórios, também é possível enviar outras informações ao finalizar um pedido.
@@ -211,7 +208,7 @@ Exemplos:
 - Exclusão
 - Gerar carteirinha ou extrato
 
-Quando um pedido está com essa tag, o comando `/feito-pf` ou `/feito-pj` **não cobra o serviço**.
+Quando um pedido PF está com essa tag, o comando `/feito-pf` **não cobra o serviço**.
 
 ## :red_circle: Com pendência
 
@@ -236,7 +233,7 @@ Pedidos cancelados **não podem ser finalizados** e **não entram nos relatório
 """,
     "Gerando Relatórios": """
 Você pode consultar sua produção utilizando:
-```/relatorio-operador``` ou ```/relatorio-despachante```
+```/relatorio-operador```
 É possível visualizar:
 - Hoje
 - Mês
@@ -244,7 +241,7 @@ Você pode consultar sua produção utilizando:
 
 :white_check_mark: É recomendável usar o canal #analises  pra isso
 
-:white_check_mark: Só você vai poder ver o relatório, mais ninguém
+:white_check_mark: Apenas operadores podem consultar esse relatório e só você poderá vê-lo
 """,
 }
 

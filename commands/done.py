@@ -2,6 +2,7 @@ import discord
 from sqlalchemy.exc import IntegrityError
 
 from database.order_service import create_order
+from database.order_service import calculate_dispatcher_value
 from database.order_service import get_existing_order
 
 from google.sheets import append_dispatcher_order
@@ -123,7 +124,7 @@ async def finish_order(
 
     await interaction.response.defer()
 
-    is_free = has_tag(
+    is_free = category == "pf" and has_tag(
         interaction.channel,
         "Gratuito",
     )
@@ -137,6 +138,31 @@ async def finish_order(
             order = get_existing_order(
                 thread_id=str(interaction.channel.id),
             )
+
+            dispatcher_value = (
+                order.dispatcher_value
+                if order is not None
+                else calculate_dispatcher_value(
+                    category=category,
+                    guild_id=str(guild.id),
+                    **create_order_kwargs,
+                )
+            )
+
+            if dispatcher_value == 0:
+                error_message = (
+                    "Não é possível finalizar um pedido PJ sem taxa"
+                    if category == "pj"
+                    else "Não é possível finalizar um pedido sem taxa "
+                    "sem a tag :free: Gratuito. Adicione a tag ao pedido "
+                    "para finalizá-lo como gratuito. Consulte a documentação "
+                    "de edição de tags no canal #como-usar."
+                )
+                await interaction.followup.send(
+                    error_message,
+                    ephemeral=True,
+                )
+                return
 
             if order is None:
                 try:

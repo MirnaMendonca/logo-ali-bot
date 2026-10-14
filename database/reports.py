@@ -1,3 +1,4 @@
+from datetime import date
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
@@ -301,6 +302,37 @@ def get_orders(
 
     finally:
 
+        session.close()
+
+
+def get_order_counts_by_day(
+    guild_id: str,
+    start_date: date,
+    end_date: date,
+) -> dict[date, int]:
+    session = SessionLocal()
+
+    try:
+        start = datetime.combine(start_date, datetime.min.time())
+        end = datetime.combine(end_date + timedelta(days=1), datetime.min.time())
+
+        finished_dates = (
+            session.query(Order.finished_at)
+            .filter(
+                Order.guild_id == guild_id,
+                Order.finished_at >= start,
+                Order.finished_at < end,
+            )
+            .all()
+        )
+
+        counts: dict[date, int] = {}
+        for (finished_at,) in finished_dates:
+            finished_day = finished_at.date()
+            counts[finished_day] = counts.get(finished_day, 0) + 1
+
+        return counts
+    finally:
         session.close()
 
 
