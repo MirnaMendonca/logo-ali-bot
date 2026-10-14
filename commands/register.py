@@ -44,107 +44,62 @@ def setup_register(bot: discord.Client):
         role: str,
     ):
 
-        if role not in (
-            "dispatcher",
-            "operator",
-        ):
+        await register_user(interaction, role)
 
-            await interaction.response.send_message(
-                "Função inválida.",
-                ephemeral=True,
+
+async def register_user(interaction: discord.Interaction, role: str):
+    if role not in ("dispatcher", "operator"):
+        await interaction.response.send_message(
+            "Função inválida.",
+            ephemeral=True,
+        )
+        return
+
+    guild = interaction.guild
+    if guild is None or not isinstance(interaction.user, discord.Member):
+        await interaction.response.send_message(
+            "Este cadastro só pode ser realizado dentro de um servidor.",
+            ephemeral=True,
+        )
+        return
+
+    session = SessionLocal()
+
+    try:
+
+        existing_user = (
+            session.query(User)
+            .filter_by(
+                discord_id=str(interaction.user.id),
             )
+            .first()
+        )
 
-            return
+        if existing_user:
 
-        session = SessionLocal()
-
-        try:
-
-            existing_user = (
-                session.query(User)
-                .filter_by(
-                    discord_id=str(interaction.user.id),
-                )
-                .first()
-            )
-
-            if existing_user:
-
-                if existing_user.role != role:
-
-                    await interaction.response.send_message(
-                        (
-                            f"Você já está cadastrado como "
-                            f"**{USER_ROLES[existing_user.role]}**. "
-                            "Não é possível alterar sua função."
-                        ),
-                        ephemeral=True,
-                    )
-
-                    return
-
-                user_role = discord.utils.get(
-                    interaction.guild.roles,
-                    name=USER_ROLES[existing_user.role],
-                )
-
-                if user_role is None:
-
-                    await interaction.response.send_message(
-                        (
-                            f"O cargo **{USER_ROLES[existing_user.role]}** "
-                            "não foi encontrado neste servidor. "
-                            "Contate um administrador."
-                        ),
-                        ephemeral=True,
-                    )
-
-                    return
-
-                if user_role not in interaction.user.roles:
-
-                    await interaction.user.add_roles(
-                        user_role,
-                    )
-
-                    await interaction.response.send_message(
-                        (
-                            f"Você já estava cadastrado como "
-                            f"**{USER_ROLES[existing_user.role]}**, "
-                            "e o cargo foi adicionado neste servidor."
-                        ),
-                        ephemeral=True,
-                    )
-
-                    return
+            if existing_user.role != role:
 
                 await interaction.response.send_message(
                     (
                         f"Você já está cadastrado como "
-                        f"**{USER_ROLES[existing_user.role]}** "
-                        "e já possui o cargo neste servidor."
+                        f"**{USER_ROLES[existing_user.role]}**. "
+                        "Não é possível alterar sua função."
                     ),
                     ephemeral=True,
                 )
 
                 return
 
-            user = User(
-                discord_id=str(interaction.user.id),
-                name=interaction.user.display_name,
-                role=role,
+            user_role = discord.utils.get(
+                guild.roles,
+                name=USER_ROLES[existing_user.role],
             )
 
-            discord_role = discord.utils.get(
-                interaction.guild.roles,
-                name=USER_ROLES[role],
-            )
-
-            if discord_role is None:
+            if user_role is None:
 
                 await interaction.response.send_message(
                     (
-                        f"O cargo **{USER_ROLES[role]}** "
+                        f"O cargo **{USER_ROLES[existing_user.role]}** "
                         "não foi encontrado neste servidor. "
                         "Contate um administrador."
                     ),
@@ -153,29 +108,81 @@ def setup_register(bot: discord.Client):
 
                 return
 
-            session.add(user)
-            session.commit()
+            if user_role not in interaction.user.roles:
 
-            await interaction.user.add_roles(
-                discord_role,
-            )
+                await interaction.user.add_roles(
+                    user_role,
+                )
 
-            embed = discord.Embed(
-                title="✅ Cadastro realizado",
-                description=(f"Você foi cadastrado como **{USER_ROLES[role]}**."),
-                color=discord.Color.green(),
-            )
+                await interaction.response.send_message(
+                    (
+                        f"Você já estava cadastrado como "
+                        f"**{USER_ROLES[existing_user.role]}**, "
+                        "e o cargo foi adicionado neste servidor."
+                    ),
+                    ephemeral=True,
+                )
+
+                return
 
             await interaction.response.send_message(
-                embed=embed,
+                (
+                    f"Você já está cadastrado como "
+                    f"**{USER_ROLES[existing_user.role]}** "
+                    "e já possui o cargo neste servidor."
+                ),
                 ephemeral=True,
             )
 
-        except Exception:
+            return
 
-            session.rollback()
-            raise
+        user = User(
+            discord_id=str(interaction.user.id),
+            name=interaction.user.display_name,
+            role=role,
+        )
 
-        finally:
+        discord_role = discord.utils.get(
+            guild.roles,
+            name=USER_ROLES[role],
+        )
 
-            session.close()
+        if discord_role is None:
+
+            await interaction.response.send_message(
+                (
+                    f"O cargo **{USER_ROLES[role]}** "
+                    "não foi encontrado neste servidor. "
+                    "Contate um administrador."
+                ),
+                ephemeral=True,
+            )
+
+            return
+
+        session.add(user)
+        session.commit()
+
+        await interaction.user.add_roles(
+            discord_role,
+        )
+
+        embed = discord.Embed(
+            title="✅ Cadastro realizado",
+            description=(f"Você foi cadastrado como **{USER_ROLES[role]}**."),
+            color=discord.Color.green(),
+        )
+
+        await interaction.response.send_message(
+            embed=embed,
+            ephemeral=True,
+        )
+
+    except Exception:
+
+        session.rollback()
+        raise
+
+    finally:
+
+        session.close()

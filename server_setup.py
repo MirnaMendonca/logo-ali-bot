@@ -1,15 +1,18 @@
 import discord
 
+from views.panels import OperatorReportPanelView
+from views.panels import RegisterPanelView
+
 WELCOME_ID = "Boas-vindas"
 REPORTS_ID = "Análises"
+REGISTRATION_ID = "Cadastro"
 
 
 WELCOME_MESSAGE = f"""{WELCOME_ID}
 # 👋 Bem-vindo(a) ao LogoAli!
 
 Para começar a utilizar o sistema, você precisa fazer seu cadastro.
-Vá no canal #cadastre-se-aqui logo abaixo desse canal e digite o comando:
-```/cadastrar```
+Vá no canal #cadastre-se-aqui logo abaixo desse canal e clique no botão de cadastro.
 
 Escolha se você é Despachante ou Operador. Após o cadastro, você receberá automaticamente o cargo correspondente e poderá utilizar o restante do servidor.
 
@@ -42,6 +45,9 @@ Os relatórios podem mostrar:
 • Período personalizado
 Apenas você poderá visualizar esse relatório.
 
+Use os botões abaixo para gerar seu relatório. O comando `/relatorio-operador`
+continua disponível como alternativa.
+
 ## 👨‍💼 Operadores
 
 ### `/relatorio-operador`
@@ -54,6 +60,29 @@ Apenas você poderá visualizar esse relatório.
 # ============================================================
 
 GUIDE_POSTS = {
+    "Guia de Cadastro e Relatórios": """
+## 1. Cadastro no sistema
+
+No canal #cadastre-se-aqui, clique em **Fazer meu cadastro** e escolha se você
+é Despachante ou Operador. O bot fará seu cadastro e adicionará o cargo
+correspondente automaticamente.
+
+Cada pessoa só pode ter uma função cadastrada. Se precisar corrigir um cadastro,
+contate um administrador.
+
+## 2. Relatório do operador
+
+No canal #analises, use um dos botões:
+
+- **Hoje**: mostra os pedidos finalizados hoje.
+- **Mês**: mostra os pedidos finalizados no mês atual.
+- **Período personalizado**: informe as datas inicial e final no formato
+  `dd/mm/aaaa`.
+
+O relatório é privado: somente você consegue ver o resultado. Apenas operadores
+cadastrados podem consultá-lo. Os comandos `/cadastrar` e
+`/relatorio-operador` continuam disponíveis como alternativas.
+""",
     "Guia do Despachante - Criando e Acompanhando Pedidos": """
 ## 1. Como criar um pedido
 
@@ -98,30 +127,32 @@ Basta abrir o post. É possível pesquisar pelo seu nome no mesmo campo onde as 
 ## 1. Assumindo um serviço
 
 Abra um pedido que esteja com a tag :yellow_circle: Aguardando.
-Clique no botão :arrow_forward: Assumir pedido
-O sistema irá marcar como :blue_circle: Em andamento e vai mostrar que o pedido está com você.
-Enquanto isso outro operador não conseguirá assumir o mesmo pedido.
+Clique no botão :arrow_forward: **Assumir pedido**. O sistema irá marcar como
+:blue_circle: Em andamento e mostrará quem assumiu. Enquanto o pedido estiver
+com você, outro operador não poderá assumi-lo.
 
 ## 2. Devolver um serviço
 
-Caso tenha assumido por engano ou não consiga realizar o serviço, clique novamente no botão.
-O pedido voltará para :yellow_circle: Aguardando e outro operador poderá assumir.
+Caso tenha assumido por engano ou não consiga realizar o serviço, clique
+novamente no botão que agora mostra seu nome. Somente a pessoa que assumiu
+consegue devolver o pedido dessa forma. Ele voltará para :yellow_circle:
+Aguardando e outra pessoa poderá assumi-lo.
 
 ## 3. Regras importantes
 
 :white_check_mark: Sempre assuma o pedido antes de começar, para que não haja confusões sobre qual operador está fazendo o pedido.
 
-:white_check_mark: Respeite sempre que o nome que aparecer no botão é o do operador que assumiu primeiro o pedido. Se seu nome não estiver no botão, não faça o pedido, a não ser em exceções onde o operador original não conseguiu devolver o pedido mas não vai conseguir completá-lo também.
+:white_check_mark: Somente quem assumiu o pedido pode usar o botão **Finalizar pedido**. Quem assumiu também será registrado como o operador do serviço.
 
-:white_check_mark: Da mesma forma, se não conseguir completar um pedido, devolva-o.
+:white_check_mark: Se não conseguir completar um pedido, devolva-o para que outra pessoa possa assumir.
 """,
     "Guia do Operador - Finalizando Pedidos": """
 ## 1. Finalizando um serviço
 
-Depois de enviar a documentação necessária:
+Depois de assumir o pedido e concluir o serviço, clique em **Finalizar pedido**.
+O formulário identifica automaticamente se o pedido é PF ou PJ.
 
 ### Em pedidos PF
-utilize ```/feito-pf```
 
 Preencha:
 
@@ -130,10 +161,8 @@ Preencha:
 - descricao_servicos: Descreva os serviços realizados, por exemplo: "TAC + Cadastro" ou "Mercosul com arrendamento"
 - quantidade: Quantidade de taxas cobradas. Por exemplo: um cadastro com 3 placas são 3 taxas, inclusão de 2 placas são 2 taxas.
 - exclusoes_pj: Quantidade de exclusões no CNPJ antes da inclusão no CPF.
-- cursos: Quantidade de cursos, RT ou TAC, realizados. Se não tiver feito um curso, preencha com 0 
 
 ### Em pedidos PJ
-utilize ```/feito-pj```
 
 Preencha:
 
@@ -142,7 +171,14 @@ Preencha:
 - descricao_servicos: Descreva os serviços realizados, por exemplo: "Alteração + Exclusão" ou "Cadastro + 3 Inclusões"
 - cadastros_inclusoes: Quantidade de serviços que são Cadastros, Inclusões ou Reativações.
 - alteracoes_exclusoes: Quantidade de serviços que são Alterações ou Exclusões.
-- cursos: Quantidade de cursos, RT ou TAC, realizados. Se não tiver feito um curso, preencha com 0 
+
+No segundo formulário, você pode preencher observações e anexar até 10 arquivos.
+Os arquivos serão publicados junto ao resumo no próprio pedido, onde o
+despachante poderá baixá-los.
+
+Os comandos `/feito-pf` e `/feito-pj` continuam disponíveis. Quando o pedido
+foi assumido, o responsável registrado será quem o assumiu, mesmo que outro
+operador use o comando.
 
 ## 2. Pedido gratuito
 
@@ -150,16 +186,9 @@ Se o pedido PF possuir a tag :free: Gratuito finalize-o normalmente. Ele não se
 Pedidos PF sem taxa só podem ser finalizados com essa tag. Consulte o tutorial **Adicionando e Removendo Tags** no canal #como-usar para saber como adicioná-la.
 Pedidos PJ não podem ser gratuitos e não podem ser finalizados sem taxa.
 
-## Parâmetros opcionais
- Além dos campos obrigatórios, também é possível enviar outras informações ao finalizar um pedido.
-### observacoes
-Utilize para adicionar quaisquer observações que sejam importantes no pedido. Lembre-se: ele ainda será contabilizado se não for um pedido gratuito.
-### operador
-Indique que outro operador fez o pedido. O pedido será dado como feito por ele e não por você. Serve para finalizar pedidos que o operador responsável não pode finalizar no momento por algum motivo.
-
 ## Regras importantes
 
-:white_check_mark: Não finalize pedidos incompletos. Envie a documentação necessária antes de finalizar o pedido.
+:white_check_mark: Não finalize pedidos incompletos. Envie a documentação necessária ao finalizar o pedido.
 
 :white_check_mark: Confira todas as informações antes de enviar.
 """,
@@ -208,7 +237,8 @@ Exemplos:
 - Exclusão
 - Gerar carteirinha ou extrato
 
-Quando um pedido PF está com essa tag, o comando `/feito-pf` **não cobra o serviço**.
+Quando um pedido PF está com essa tag, a finalização pelo botão ou pelo comando
+`/feito-pf` **não cobra o serviço**.
 
 ## :red_circle: Com pendência
 
@@ -232,16 +262,18 @@ Pedidos cancelados **não podem ser finalizados** e **não entram nos relatório
 4. A alteração é salva automaticamente.
 """,
     "Gerando Relatórios": """
-Você pode consultar sua produção utilizando:
-```/relatorio-operador```
-É possível visualizar:
-- Hoje
-- Mês
-- Período personalizado
+No canal #analises, clique em um dos botões para consultar sua produção:
 
-:white_check_mark: É recomendável usar o canal #analises  pra isso
+- **Hoje**: pedidos finalizados hoje.
+- **Mês**: pedidos finalizados no mês atual.
+- **Período personalizado**: informe as datas inicial e final no formato
+  `dd/mm/aaaa`.
 
-:white_check_mark: Apenas operadores podem consultar esse relatório e só você poderá vê-lo
+O relatório é enviado de forma privada e somente você poderá vê-lo. Apenas
+operadores podem consultar o próprio relatório.
+
+O comando `/relatorio-operador` continua disponível como alternativa e oferece
+as mesmas opções de período.
 """,
 }
 
@@ -250,6 +282,7 @@ async def ensure_pinned_message(
     channel: discord.TextChannel,
     identifier: str,
     content: str,
+    view: discord.ui.View | None = None,
 ):
 
     try:
@@ -262,16 +295,19 @@ async def ensure_pinned_message(
                 identifier
             ):
 
+                changes = {}
                 if message.content != content:
-
-                    await message.edit(
-                        content=content,
-                    )
+                    changes["content"] = content
+                if view is not None:
+                    changes["view"] = view
+                if changes:
+                    await message.edit(**changes)
 
                 return
 
         message = await channel.send(
             content,
+            view=view,
         )
 
         await message.pin(
@@ -317,18 +353,35 @@ async def ensure_forum_posts(
             forum,
         )
 
-        existing_titles = {thread.name.strip().lower() for thread in existing_threads}
+        existing_threads_by_title = {
+            thread.name.strip().lower(): thread for thread in existing_threads
+        }
 
         for title, content in GUIDE_POSTS.items():
 
-            if title.strip().lower() in existing_titles:
-
-                print(
-                    f"[SETUP] Tutorial já existe | "
-                    f"forum=#{forum.name} | "
-                    f"titulo='{title}'"
-                )
-
+            existing_thread = existing_threads_by_title.get(title.strip().lower())
+            if existing_thread is not None:
+                try:
+                    starter_message = await existing_thread.fetch_message(
+                        existing_thread.id
+                    )
+                    if starter_message.content != content:
+                        await starter_message.edit(content=content)
+                        print(
+                            f"[SETUP] Tutorial atualizado | "
+                            f"forum=#{forum.name} | titulo='{title}'"
+                        )
+                    else:
+                        print(
+                            f"[SETUP] Tutorial já está atualizado | "
+                            f"forum=#{forum.name} | titulo='{title}'"
+                        )
+                except (discord.Forbidden, discord.HTTPException) as error:
+                    print(
+                        f"[ERRO][SETUP] Não foi possível atualizar o tutorial | "
+                        f"forum=#{forum.name} | titulo='{title}' | "
+                        f"erro={error!r}"
+                    )
                 continue
 
             print(
@@ -367,6 +420,33 @@ async def setup_server(
         )
 
         # ====================================================
+        # Cadastro
+        # ====================================================
+
+        registration_channel = discord.utils.get(
+            guild.text_channels,
+            name="cadastre-se-aqui",
+        )
+
+        if registration_channel is not None:
+            await ensure_pinned_message(
+                channel=registration_channel,
+                identifier=REGISTRATION_ID,
+                content=(
+                    f"{REGISTRATION_ID}\n"
+                    "# 📝 Cadastre-se\n\n"
+                    "Clique no botão abaixo e escolha sua função para fazer "
+                    "seu cadastro no sistema."
+                ),
+                view=RegisterPanelView(),
+            )
+        else:
+            print(
+                f"[SETUP] Canal #cadastre-se-aqui não encontrado | "
+                f"guild='{guild.name}'"
+            )
+
+        # ====================================================
         # Boas-vindas
         # ====================================================
 
@@ -402,6 +482,7 @@ async def setup_server(
                 channel=reports_channel,
                 identifier=REPORTS_ID,
                 content=REPORTS_MESSAGE,
+                view=OperatorReportPanelView(),
             )
 
         else:

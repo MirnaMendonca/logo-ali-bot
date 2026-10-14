@@ -14,6 +14,8 @@ from config import (
 from utils.tags import set_status_tag
 from utils.tags import STATUS_NAMES
 from views.claim_order import ClaimOrderView
+from views.panels import OperatorReportPanelView
+from views.panels import RegisterPanelView
 from views.return_order import ReturnOrderView
 
 from commands.register import setup_register
@@ -41,7 +43,9 @@ bot = commands.Bot(
     intents=intents,
 )
 
-bot.add_view(ClaimOrderView())
+bot.add_view(ClaimOrderView(claimed=True))
+bot.add_view(RegisterPanelView())
+bot.add_view(OperatorReportPanelView())
 bot.add_view(ReturnOrderView())
 bot.add_view(ReturnOrderView(persist_return=False))
 order_reconciliation_lock = asyncio.Lock()

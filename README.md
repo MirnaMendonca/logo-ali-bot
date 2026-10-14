@@ -26,6 +26,14 @@ O cadastro também registra o usuário no banco de dados utilizado para geraçã
 
 ## Finalização de pedidos
 
+Nos pedidos PF/PJ, o operador pode assumir o pedido pelo botão e, em seguida,
+clicar em **Finalizar pedido** para preencher o formulário da categoria correta.
+Somente quem assumiu pode usar o botão de finalização; os comandos slash continuam
+livres e registram como operador quem assumiu o pedido.
+O formulário permite anexar até 10 arquivos; eles ficam na mensagem de
+finalização dentro do tópico, disponíveis para o despachante baixar. Os comandos
+slash abaixo continuam disponíveis como alternativa.
+
 Existem dois comandos independentes:
 
 ```/feito-pf```

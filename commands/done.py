@@ -7,6 +7,7 @@ from database.order_service import get_existing_order
 
 from google.sheets import append_dispatcher_order
 from google.sheets import append_order
+from utils.order_claim import find_claimed_operator_id
 from utils.tags import set_status_tag
 from views.return_order import ReturnOrderView
 
@@ -31,6 +32,8 @@ async def finish_order(
     embed_title: str,
     amount_fields: list[tuple[str, int]],
     create_order_kwargs: dict,
+    attachments: list[discord.Attachment] | None = None,
+    require_claimant: bool = False,
 ):
 
     if not isinstance(
@@ -43,26 +46,18 @@ async def finish_order(
         )
         return
 
-    operator_role = discord.utils.get(
-        interaction.guild.roles,
-        name="Operador",
-    )
-
-    if operator_role is None or operator_role not in interaction.user.roles:
+    guild = interaction.guild
+    if guild is None:
         await interaction.response.send_message(
-            "Apenas operadores podem finalizar pedidos.",
+            "Não foi possível identificar o servidor.",
             ephemeral=True,
         )
         return
 
-    if operador is None:
-        operador = interaction.user
-
-    guild = interaction.guild
-
-    if guild is None:
+    operator_role = discord.utils.get(guild.roles, name="Operador")
+    if operator_role is None or operator_role not in interaction.user.roles:
         await interaction.response.send_message(
-            "Não foi possível identificar o servidor.",
+            "Apenas operadores podem finalizar pedidos.",
             ephemeral=True,
         )
         return
@@ -123,6 +118,77 @@ async def finish_order(
         return
 
     await interaction.response.defer()
+
+    try:
+        claimed_operator_id = await find_claimed_operator_id(interaction.channel)
+    except (discord.Forbidden, discord.HTTPException) as error:
+        print(
+            "[ERRO][PEDIDO] Não foi possível verificar quem assumiu o pedido: "
+            f"{error!r}"
+        )
+        await interaction.followup.send(
+            "Não foi possível verificar quem assumiu este pedido. "
+            "Confira as permissões do bot no tópico e tente novamente.",
+            ephemeral=True,
+        )
+        return
+    if require_claimant and claimed_operator_id is None:
+        await interaction.followup.send(
+            "Não foi possível confirmar quem assumiu este pedido. "
+            "Peça para o operador assumi-lo novamente.",
+            ephemeral=True,
+        )
+        return
+
+    if claimed_operator_id is not None:
+        if require_claimant and claimed_operator_id != interaction.user.id:
+            await interaction.followup.send(
+                "Somente o operador que assumiu este pedido pode finalizá-lo.",
+                ephemeral=True,
+            )
+            return
+
+        operador = guild.get_member(claimed_operator_id)
+        if operador is None:
+            try:
+                operador = await guild.fetch_member(claimed_operator_id)
+            except (
+                discord.NotFound,
+                discord.Forbidden,
+                discord.HTTPException,
+            ) as error:
+                print(
+                    "[ERRO][PEDIDO] Não foi possível localizar o operador "
+                    f"que assumiu o pedido: {error!r}"
+                )
+                await interaction.followup.send(
+                    "Não foi possível localizar o operador que assumiu este pedido. "
+                    "Tente novamente ou contate um administrador.",
+                    ephemeral=True,
+                )
+                return
+    elif operador is None:
+        operador = interaction.user
+
+    if operator_role not in operador.roles:
+        await interaction.followup.send(
+            "O operador que assumiu o pedido não possui mais o cargo de operador.",
+            ephemeral=True,
+        )
+        return
+
+    files = []
+    try:
+        for attachment in attachments or []:
+            files.append(await attachment.to_file())
+    except Exception as error:
+        print(f"[ERRO][ANEXOS] Não foi possível preparar os arquivos: {error!r}")
+        await interaction.followup.send(
+            "Não foi possível preparar os arquivos anexados. "
+            "O pedido não foi finalizado; tente enviar os arquivos novamente.",
+            ephemeral=True,
+        )
+        return
 
     is_free = category == "pf" and has_tag(
         interaction.channel,
@@ -274,6 +340,7 @@ async def finish_order(
 
     await interaction.followup.send(
         embed=embed,
+        files=files,
         **(
             {
                 "view": ReturnOrderView(
