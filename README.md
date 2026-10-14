@@ -12,7 +12,7 @@ Status por tags: Aguardando, Em andamento, Finalizado, Cancelado, Com pendência
 
 Botão para assumir pedidos e bloqueio para impedir dois operadores trabalhando no mesmo pedido
 
-Relatórios financeiros para operadores, despachantes e geral com permissionamento
+Relatórios financeiros para operadores e administradores, com permissionamento
 
 Integração automática com as planilhas do Google para visualização dos pedidos
 
@@ -50,8 +50,8 @@ Pedidos podem ser enviados diretamente para revisão quando necessário.
 
 ## Relatórios
 
-O sistema possui três tipos de relatório, que podem ser consultados nos períodos "hoje", "mês" e "período personalizado".
-Os relatórios são privados e, com exceção do relatório geral, não pode ser lido por ninguém além da pessoa que enviou o comando.
+O sistema possui relatório de produção para operadores, que pode ser consultado nos períodos "hoje", "mês" e "período personalizado", e relatório geral para administradores.
+Os relatórios são privados e, com exceção do relatório geral, não podem ser lidos por ninguém além da pessoa que enviou o comando.
 
 ### Análise de planilha
 
@@ -66,24 +66,6 @@ Mostra:
 - quantidade de pedidos
 
 - valor acumulado
-
-### Relatório do despachante
-
-```/relatorio-despachante```
-
-Mostra:
-
-- quantidade de pedidos PF
-
-- quantidade de pedidos PJ
-
-- quantidade de cursos
-
-- valor dos pedidos PF e cursos
-
-- valor dos pedidos PJ
-
-- valor líquido
 
 ### Relatório geral
 

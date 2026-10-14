@@ -6,6 +6,20 @@ from database.order_service import edit_order, get_order_by_thread_id
 
 from google.sheets import update_order_on_sheets
 
+from config import USER_ROLES
+
+
+def _is_admin(interaction: discord.Interaction) -> bool:
+    guild = interaction.guild
+    if guild is None or not isinstance(interaction.user, discord.Member):
+        return False
+
+    admin_role = discord.utils.get(
+        guild.roles,
+        name=USER_ROLES["admin"],
+    )
+    return admin_role is not None and admin_role in interaction.user.roles
+
 
 class EditOrderConfirmationModal(discord.ui.Modal):
 
@@ -57,6 +71,12 @@ class EditOrderConfirmationModal(discord.ui.Modal):
         self,
         interaction: discord.Interaction,
     ):
+        if not _is_admin(interaction):
+            await interaction.response.send_message(
+                "Apenas administradores podem editar pedidos.",
+                ephemeral=True,
+            )
+            return
 
         if self.confirmation.value.strip().upper() != "CONFIRMO":
 
@@ -168,6 +188,12 @@ def setup_edit_order(bot: discord.Client):
         operador: discord.Member | None = None,
         observacoes: str | None = None,
     ):
+        if not _is_admin(interaction):
+            await interaction.response.send_message(
+                "Apenas administradores podem editar pedidos.",
+                ephemeral=True,
+            )
+            return
 
         if not isinstance(
             interaction.channel,

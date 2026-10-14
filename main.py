@@ -20,7 +20,6 @@ from commands.register import setup_register
 from commands.done_pf import setup_done_pf
 from commands.done_pj import setup_done_pj
 from commands.report_operator import setup_report_operator
-from commands.report_dispatcher import setup_report_dispatcher
 from commands.report_general import setup_report_general
 from commands.delete_order import setup_delete_order
 from commands.edit_order import setup_edit_order
@@ -51,7 +50,6 @@ setup_register(bot)
 setup_done_pf(bot)
 setup_done_pj(bot)
 setup_report_operator(bot)
-setup_report_dispatcher(bot)
 setup_report_general(bot)
 setup_delete_order(bot)
 setup_edit_order(bot)

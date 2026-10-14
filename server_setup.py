@@ -46,11 +46,6 @@ Apenas você poderá visualizar esse relatório.
 
 ### `/relatorio-operador`
 
----
-## 🏢 Despachantes
-
-### `/relatorio-despachante`
-
 """
 
 
@@ -238,7 +233,7 @@ Pedidos cancelados **não podem ser finalizados** e **não entram nos relatório
 """,
     "Gerando Relatórios": """
 Você pode consultar sua produção utilizando:
-```/relatorio-operador``` ou ```/relatorio-despachante```
+```/relatorio-operador```
 É possível visualizar:
 - Hoje
 - Mês
@@ -246,7 +241,7 @@ Você pode consultar sua produção utilizando:
 
 :white_check_mark: É recomendável usar o canal #analises  pra isso
 
-:white_check_mark: Só você vai poder ver o relatório, mais ninguém
+:white_check_mark: Apenas operadores podem consultar esse relatório e só você poderá vê-lo
 """,
 }
 
