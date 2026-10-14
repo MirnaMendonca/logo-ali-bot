@@ -46,6 +46,8 @@ Ao finalizar um pedido o bot:
 
 - gera um resumo da operação
 
+- permite registrar a devolução escolhendo um nome no menu: Administração, Kauan, João, Sophia ou Alana; o nome escolhido também é enviado à planilha do despachante
+
 Pedidos podem ser enviados diretamente para revisão quando necessário.
 
 ## Relatórios
