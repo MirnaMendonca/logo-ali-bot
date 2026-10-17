@@ -11,6 +11,7 @@ SCOPES = [
 ]
 
 THREAD_ID_COLUMN = 15
+DISPATCHER_EXCLUSIONS_SHEET = "exclusoes-pj"
 
 
 def dispatcher_return_column(
@@ -48,6 +49,17 @@ def get_dispatcher_worksheet(
         return None
 
     return spreadsheet.worksheet(category.lower())
+
+
+def get_dispatcher_exclusions_worksheet(
+    order,
+):
+    spreadsheet = dispatcher_spreadsheets.get(int(order.guild_id))
+
+    if spreadsheet is None:
+        return None
+
+    return spreadsheet.worksheet(DISPATCHER_EXCLUSIONS_SHEET)
 
 
 def get_worksheet(name: str):
@@ -109,6 +121,41 @@ def append_pf_order(
     )
 
 
+def append_free_pf_order(
+    order,
+    *,
+    pf_amount: int,
+    course_amount: int,
+):
+    worksheet = get_worksheet(
+        f"{order.guild_name}-gratuito",
+    )
+
+    if find_order_row(worksheet, order.thread_id) is not None:
+        return
+
+    append_row(
+        worksheet,
+        [
+            order.finished_at.strftime("%d/%m/%Y %H:%M:%S"),
+            order.client,
+            order.document,
+            order.order,
+            pf_amount,
+            course_amount,
+            0,
+            0,
+            order.operator_name,
+            order.observations or "",
+            "",
+            "",
+            "",
+            "",
+            order.thread_id,
+        ],
+    )
+
+
 def append_pj_order(
     worksheet,
     order,
@@ -145,10 +192,13 @@ def append_order(
         f"{order.guild_name}-{category}",
     )
 
-    if find_order_row(
-        worksheet,
-        order.thread_id,
-    ) is not None:
+    if (
+        find_order_row(
+            worksheet,
+            order.thread_id,
+        )
+        is not None
+    ):
         return
 
     if category == "pf":
@@ -185,23 +235,7 @@ def append_dispatcher_order(
         return
 
     if category == "pf":
-        values = [
-            order.finished_at.strftime("%d/%m/%Y %H:%M"),
-            order.client,
-            order.document,
-            order.order,
-            order.pf_amount,
-            order.dispatcher_value,
-            order.opening_name or "",
-            order.return_name or "",
-            order.observations or "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            order.thread_id,
-        ]
+        values = dispatcher_pf_order_values(order)
 
     elif category == "pj":
         values = [
@@ -227,9 +261,9 @@ def append_dispatcher_order(
             "Categoria de pedido inválida.",
         )
 
-    if (
-        worksheet.col_values(THREAD_ID_COLUMN).count(order.thread_id) > 0
-    ):
+    if worksheet.col_values(THREAD_ID_COLUMN).count(order.thread_id) > 0:
+        if category == "pf":
+            sync_dispatcher_exclusions_order(order)
         return
 
     next_row = max(
@@ -242,6 +276,9 @@ def append_dispatcher_order(
         [values],
         value_input_option="USER_ENTERED",
     )
+
+    if category == "pf":
+        sync_dispatcher_exclusions_order(order)
 
 
 def find_order_row(
@@ -265,6 +302,59 @@ def find_order_row(
     return None
 
 
+def dispatcher_pf_order_values(order):
+    return [
+        order.finished_at.strftime("%d/%m/%Y %H:%M"),
+        order.client,
+        order.document,
+        order.order,
+        order.pf_amount,
+        order.dispatcher_value,
+        order.opening_name or "",
+        order.return_name or "",
+        order.observations or "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        order.thread_id,
+    ]
+
+
+def sync_dispatcher_exclusions_order(order):
+    worksheet = get_dispatcher_exclusions_worksheet(order)
+
+    if worksheet is None:
+        return
+
+    row = find_order_row(worksheet, order.thread_id)
+
+    if order.pf_exclusions_pj <= 0:
+        if row is not None:
+            worksheet.delete_rows(row)
+        return
+
+    values = dispatcher_pf_order_values(order)
+
+    if row is None:
+        next_row = max(
+            len(worksheet.get_all_values()) + 1,
+            3,
+        )
+        worksheet.update(
+            f"A{next_row}:O{next_row}",
+            [values],
+            value_input_option="USER_ENTERED",
+        )
+    else:
+        worksheet.update(
+            f"A{row}:O{row}",
+            [values],
+            value_input_option="USER_ENTERED",
+        )
+
+
 def update_dispatcher_return_name(
     order,
     return_name: str,
@@ -285,15 +375,16 @@ def update_dispatcher_return_name(
     )
 
     if row is None:
-        raise ValueError(
-            "Pedido não encontrado na planilha do despachante."
-        )
+        raise ValueError("Pedido não encontrado na planilha do despachante.")
 
     worksheet.update_cell(
         row,
         dispatcher_return_column(order.category),
         return_name,
     )
+
+    if order.category == "pf" and order.pf_exclusions_pj > 0:
+        sync_dispatcher_exclusions_order(order)
 
 
 def delete_order_from_sheet(
@@ -346,6 +437,16 @@ def delete_dispatcher_order_from_sheet(
     worksheet.delete_rows(
         row,
     )
+
+    if category == "pf":
+        exclusions_worksheet = get_dispatcher_exclusions_worksheet(order)
+        if exclusions_worksheet is not None:
+            exclusions_row = find_order_row(
+                exclusions_worksheet,
+                order.thread_id,
+            )
+            if exclusions_row is not None:
+                exclusions_worksheet.delete_rows(exclusions_row)
 
 
 def update_order_on_sheet(
@@ -444,23 +545,7 @@ def update_dispatcher_order_on_sheet(
         )
 
     if category == "pf":
-        values = [
-            order.finished_at.strftime("%d/%m/%Y %H:%M"),
-            order.client,
-            order.document,
-            order.order,
-            order.pf_amount,
-            order.dispatcher_value,
-            order.opening_name or "",
-            order.return_name or "",
-            order.observations or "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            order.thread_id,
-        ]
+        values = dispatcher_pf_order_values(order)
 
     elif category == "pj":
         values = [
@@ -523,11 +608,23 @@ def update_order_on_sheets(
         category=category,
     )
 
+    if category == "pf":
+        sync_dispatcher_exclusions_order(order)
+
 
 def delete_order_from_sheets(
     order,
     category: str,
 ):
+    if category == "pf" and order.dispatcher_value == 0:
+        worksheet = get_worksheet(
+            f"{order.guild_name}-gratuito",
+        )
+        row = find_order_row(worksheet, order.thread_id)
+        if row is not None:
+            worksheet.delete_rows(row)
+        return
+
     worksheet = get_worksheet(
         f"{order.guild_name}-{category}",
     )

@@ -65,7 +65,7 @@ Os relatórios são privados e, com exceção do relatório geral, não podem se
 
 ### Análise de planilha
 
-O comando `/analisar-planilha`, disponível apenas para administradores, recebe um relatório `.xlsx` e envia uma planilha privada com análises relevantes.
+O comando `/analisar-planilha`, disponível apenas para administradores, recebe relatórios e envia uma planilha privada com análises relevantes.
 
 ### Relatório do operador
 
@@ -97,6 +97,8 @@ Todos os dias às 20h o bot envia automaticamente o fechamento diário nos canai
 
 Na sexta-feira também envia o fechamento semanal dos operadores.
 
+Ao reiniciar, o bot confere o histórico do dia nos canais e não reenvia as partes do fechamento que já foram publicadas.
+
 Isso cria um histórico permanente dentro do próprio Discord que é acessível apenas aos administradores.
 
 ## Integração com Google Sheets
@@ -106,6 +108,10 @@ Pedidos são enviados automaticamente para planilhas.
 Cada servidor utiliza suas próprias abas.
 
 Pedidos enviados para revisão vão para a aba "revisão".
+
+Pedidos PF com exclusões PJ também são copiados para a aba `exclusoes-pj` da planilha do despachante, com os mesmos dados da aba `pf`.
+
+Pedidos PF marcados como gratuitos são registrados no banco de dados com os campos numéricos zerados e também na planilha principal. Eles não entram nos totais financeiros nem nas abas PF/PJ de pedidos pagos.
 
 ## Controle financeiro
 

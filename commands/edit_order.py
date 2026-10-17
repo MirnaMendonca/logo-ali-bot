@@ -110,10 +110,11 @@ class EditOrderConfirmationModal(discord.ui.Modal):
                 observations=self.observacoes,
             )
 
-            update_order_on_sheets(
-                order=order,
-                category=self.order_category,
-            )
+            if order.dispatcher_value != 0:
+                update_order_on_sheets(
+                    order=order,
+                    category=self.order_category,
+                )
 
             session.commit()
 

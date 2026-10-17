@@ -6,6 +6,7 @@ from database.order_service import calculate_dispatcher_value
 from database.order_service import get_existing_order
 
 from google.sheets import append_dispatcher_order
+from google.sheets import append_free_pf_order
 from google.sheets import append_order
 from utils.order_claim import find_claimed_operator_id
 from utils.tags import set_status_tag
@@ -197,10 +198,8 @@ async def finish_order(
 
     order = None
 
-    if not is_free:
-
-        try:
-
+    try:
+        if not is_free:
             order = get_existing_order(
                 thread_id=str(interaction.channel.id),
             )
@@ -261,24 +260,54 @@ async def finish_order(
                 order,
                 category,
             )
-
-        except ValueError as e:
-
-            await interaction.followup.send(
-                str(e),
-                ephemeral=True,
+        else:
+            order = get_existing_order(
+                thread_id=str(interaction.channel.id),
             )
-            return
+            if order is None:
+                try:
+                    order = create_order(
+                        thread_id=str(interaction.channel.id),
+                        guild_id=str(guild.id),
+                        operator_discord_id=str(operador.id),
+                        opening_name=dispatcher.display_name,
+                        order_category=category,
+                        client=cliente,
+                        document=documento,
+                        order=descricao_servicos,
+                        observations=observacoes,
+                        calculate_values=False,
+                    )
+                except IntegrityError:
+                    order = get_existing_order(
+                        thread_id=str(interaction.channel.id),
+                    )
+                    if order is None:
+                        raise
 
-        except Exception as e:
-
-            print(e)
-
-            await interaction.followup.send(
-                "Ocorreu um erro inesperado ao finalizar o pedido.",
-                ephemeral=True,
+            append_free_pf_order(
+                order,
+                pf_amount=create_order_kwargs.get("pf_amount", 0),
+                course_amount=create_order_kwargs.get("course_amount", 0),
             )
-            return
+
+    except ValueError as e:
+
+        await interaction.followup.send(
+            str(e),
+            ephemeral=True,
+        )
+        return
+
+    except Exception as e:
+
+        print(e)
+
+        await interaction.followup.send(
+            "Ocorreu um erro inesperado ao finalizar o pedido.",
+            ephemeral=True,
+        )
+        return
 
     await set_status_tag(
         interaction.channel,

@@ -109,6 +109,7 @@ def create_order(
     pj_amount_cad_or_reval: int = 0,
     pj_amount_alt_or_rem: int = 0,
     observations: str | None = None,
+    calculate_values: bool = True,
 ) -> Order:
 
     session = SessionLocal()
@@ -136,6 +137,9 @@ def create_order(
         if order_category not in ("pf", "pj"):
             raise ValueError("Categoria de pedido inválida.")
 
+        if not calculate_values and order_category != "pf":
+            raise ValueError("Somente pedidos PF podem ser registrados como gratuitos.")
+
         finished_at = datetime.now(
             timezone(
                 timedelta(hours=-3),
@@ -162,9 +166,16 @@ def create_order(
             finished_at=finished_at,
         )
 
-        calculate_order_values(
-            new_order,
-        )
+        if calculate_values:
+            calculate_order_values(new_order)
+        else:
+            new_order.pf_amount = 0
+            new_order.pf_exclusions_pj = 0
+            new_order.course_amount = 0
+            new_order.pj_amount_cad_or_reval = 0
+            new_order.pj_amount_alt_or_rem = 0
+            new_order.dispatcher_value = 0
+            new_order.operator_value = 0
 
         session.add(
             new_order,
@@ -314,6 +325,19 @@ def edit_order(
     if order is None:
         raise ValueError("Pedido não encontrado.")
 
+    is_free_order = order.category == "pf" and order.dispatcher_value == 0
+    if is_free_order and any(
+        value not in (None, 0)
+        for value in (
+            pf_amount,
+            pf_exclusions_pj,
+            course_amount,
+        )
+    ):
+        raise ValueError(
+            "Pedidos gratuitos devem permanecer com todas as quantidades zeradas."
+        )
+
     if client is not None:
         order.client = client
 
@@ -365,8 +389,12 @@ def edit_order(
         order.operator_id = operator.id
         order.operator_name = operator.name
 
-    calculate_order_values(
-        order,
-    )
+    if not is_free_order:
+        calculate_order_values(order)
+        if order.dispatcher_value == 0:
+            raise ValueError(
+                "O pedido não pode ficar sem valor. Use a tag Gratuito "
+                "ao finalizá-lo como gratuito."
+            )
 
     return order

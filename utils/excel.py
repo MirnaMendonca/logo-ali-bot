@@ -3,12 +3,14 @@ from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+import unicodedata
 import warnings
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
+import xlrd
 
 from database.reports import get_orders
 
@@ -39,7 +41,11 @@ def summarize_orders_by_operator(
 ) -> tuple[
     dict[date, dict[str, dict[str, int]]],
     dict[str, dict[str, int]],
+    str,
 ]:
+    if file_content.startswith(bytes.fromhex("D0CF11E0A1B11AE1")):
+        return _summarize_sitcarga_orders(file_content)
+
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
@@ -122,15 +128,161 @@ def summarize_orders_by_operator(
                 for day, operator_counts in sorted(daily_counts.items())
             },
             {operator: dict(counts) for operator, counts in totals.items()},
+            "pf",
         )
     finally:
         workbook.close()
 
 
+def _normalize_header(value: object) -> str:
+    normalized = unicodedata.normalize("NFKD", str(value or ""))
+    return (
+        "".join(
+            character
+            for character in normalized
+            if not unicodedata.combining(character)
+        )
+        .strip()
+        .casefold()
+    )
+
+
+def _summarize_sitcarga_orders(
+    file_content: bytes,
+) -> tuple[
+    dict[date, dict[str, dict[str, int]]],
+    dict[str, dict[str, int]],
+    str,
+]:
+    try:
+        workbook = xlrd.open_workbook(file_contents=file_content, on_demand=True)
+    except (xlrd.XLRDError, OSError) as error:
+        raise ValueError("Não foi possível abrir o arquivo XLS.") from error
+
+    try:
+        if not workbook.nsheets:
+            raise ValueError("O arquivo não contém abas.")
+
+        worksheet = workbook.sheet_by_index(0)
+        header_row = None
+        column_indexes = {}
+        required_headers = {
+            "tipo servico": "service",
+            "data": "date",
+            "servico (r$)": "amount",
+            "nome operador": "operator",
+        }
+
+        for row_index in range(min(worksheet.nrows, 20)):
+            headers = {
+                _normalize_header(worksheet.cell_value(row_index, column_index)): (
+                    column_index
+                )
+                for column_index in range(worksheet.ncols)
+            }
+            if all(header in headers for header in required_headers):
+                header_row = row_index
+                column_indexes = {
+                    key: headers[header] for header, key in required_headers.items()
+                }
+                break
+
+        if header_row is None:
+            raise ValueError(
+                "O arquivo XLS não corresponde ao formato de relatório esperado."
+            )
+
+        daily_counts: defaultdict[date, defaultdict[str, Counter[str]]] = defaultdict(
+            lambda: defaultdict(Counter)
+        )
+        totals: defaultdict[str, Counter[str]] = defaultdict(Counter)
+
+        for row_index in range(header_row + 1, worksheet.nrows):
+            row = worksheet.row(row_index)
+            order_date_cell = row[column_indexes["date"]]
+            operator_value = worksheet.cell_value(
+                row_index,
+                column_indexes["operator"],
+            )
+            service_value = worksheet.cell_value(
+                row_index,
+                column_indexes["service"],
+            )
+            amount_cell = row[column_indexes["amount"]]
+
+            if (
+                order_date_cell.ctype == xlrd.XL_CELL_EMPTY
+                and not operator_value
+                and not service_value
+            ):
+                continue
+
+            row_number = row_index + 1
+            amount = _parse_order_amount(
+                amount_cell.value,
+                row_number,
+                worksheet.name,
+            )
+            if amount == 0:
+                continue
+
+            if (
+                order_date_cell.ctype == xlrd.XL_CELL_EMPTY
+                or not isinstance(operator_value, str)
+                or not operator_value.strip()
+            ):
+                raise ValueError(
+                    f"Registro incompleto na linha {row_number} da aba "
+                    f"'{worksheet.name}'."
+                )
+
+            try:
+                if order_date_cell.ctype == xlrd.XL_CELL_DATE:
+                    parsed_date = xlrd.xldate_as_datetime(
+                        order_date_cell.value,
+                        workbook.datemode,
+                    ).date()
+                elif isinstance(order_date_cell.value, str):
+                    raw_date = order_date_cell.value.strip()
+                    try:
+                        parsed_date = datetime.fromisoformat(raw_date).date()
+                    except ValueError:
+                        parsed_date = datetime.strptime(
+                            raw_date,
+                            "%d/%m/%Y",
+                        ).date()
+                else:
+                    raise ValueError
+            except (ValueError, xlrd.XLDateError) as error:
+                raise ValueError(
+                    f"Data inválida na linha {row_number} da aba "
+                    f"'{worksheet.name}'."
+                ) from error
+
+            operator_name = operator_value.strip()
+            daily_counts[parsed_date][operator_name]["paid"] += 1
+            totals[operator_name]["paid"] += 1
+
+        return (
+            {
+                day: {
+                    operator: dict(counts)
+                    for operator, counts in operator_counts.items()
+                }
+                for day, operator_counts in sorted(daily_counts.items())
+            },
+            {operator: dict(counts) for operator, counts in totals.items()},
+            "pj",
+        )
+    finally:
+        workbook.release_resources()
+
+
 def create_operator_analysis_workbook(
     daily_counts: dict[date, dict[str, dict[str, int]]],
     totals: dict[str, dict[str, int]],
-    discord_counts: dict[date, int],
+    discord_paid_operator_counts: dict[date, dict[str, int]],
+    discord_free_operator_counts: dict[date, dict[str, int]],
 ) -> bytes:
     workbook = Workbook()
     daily_sheet = workbook.active
@@ -141,17 +293,59 @@ def create_operator_analysis_workbook(
     first_day = min(daily_counts)
     last_day = max(daily_counts)
 
+    operator_labels = {}
+    normalized_daily_counts = {}
+    normalized_totals = {}
+    normalized_discord_paid_counts = {}
+    normalized_discord_free_counts = {}
+
+    for day, operators in daily_counts.items():
+        normalized_operators = normalized_daily_counts.setdefault(day, {})
+        for name, counts in operators.items():
+            key = _normalize_header(name)
+            operator_labels.setdefault(key, name)
+            normalized_counts = normalized_operators.setdefault(key, {})
+            for category, count in counts.items():
+                normalized_counts[category] = normalized_counts.get(category, 0) + count
+
+    for name, counts in totals.items():
+        key = _normalize_header(name)
+        operator_labels.setdefault(key, name)
+        normalized_counts = normalized_totals.setdefault(key, {})
+        for category, count in counts.items():
+            normalized_counts[category] = normalized_counts.get(category, 0) + count
+
+    def normalize_discord_counts(counts_by_day):
+        normalized_counts_by_day = {}
+        for day, operators in counts_by_day.items():
+            normalized_operators = normalized_counts_by_day.setdefault(day, {})
+            for name, count in operators.items():
+                key = _normalize_header(name)
+                operator_labels.setdefault(key, name)
+                normalized_operators[key] = normalized_operators.get(key, 0) + count
+        return normalized_counts_by_day
+
+    normalized_discord_paid_counts = normalize_discord_counts(
+        discord_paid_operator_counts
+    )
+    normalized_discord_free_counts = normalize_discord_counts(
+        discord_free_operator_counts
+    )
+
     daily_headers = [
         "Data",
         "Com valor (planilha)",
         "Gratuitos (planilha)",
         "Total planilha",
-        "Registrados no Discord",
+        "Pagos registrados no Discord",
+        "Gratuitos registrados no Discord",
+        "Total registrados no Discord",
     ]
     daily_sheet.append(daily_headers)
     paid_total = 0
     free_total = 0
-    discord_total = 0
+    discord_paid_total = 0
+    discord_free_total = 0
     day = first_day
     while day <= last_day:
         counts = daily_counts.get(day, {})
@@ -161,11 +355,23 @@ def create_operator_analysis_workbook(
         free = sum(
             operator_counts.get("free", 0) for operator_counts in counts.values()
         )
-        discord_count = discord_counts.get(day, 0)
-        daily_sheet.append([day, paid, free, paid + free, discord_count])
+        discord_paid = sum(normalized_discord_paid_counts.get(day, {}).values())
+        discord_free = sum(normalized_discord_free_counts.get(day, {}).values())
+        daily_sheet.append(
+            [
+                day,
+                paid,
+                free,
+                paid + free,
+                discord_paid,
+                discord_free,
+                discord_paid + discord_free,
+            ]
+        )
         paid_total += paid
         free_total += free
-        discord_total += discord_count
+        discord_paid_total += discord_paid
+        discord_free_total += discord_free
         day += timedelta(days=1)
 
     daily_sheet.append(
@@ -174,50 +380,105 @@ def create_operator_analysis_workbook(
             paid_total,
             free_total,
             paid_total + free_total,
-            discord_total,
+            discord_paid_total,
+            discord_free_total,
+            discord_paid_total + discord_free_total,
         ]
     )
 
+    operators = set(operator_labels)
     operator_order = sorted(
-        totals.items(),
-        key=lambda item: (
-            -(item[1].get("paid", 0) + item[1].get("free", 0)),
-            item[0].casefold(),
+        operators,
+        key=lambda operator: (
+            -(
+                normalized_totals.get(operator, {}).get("paid", 0)
+                + normalized_totals.get(operator, {}).get("free", 0)
+            ),
+            operator.casefold(),
         ),
     )
 
     operator_daily_sheet.append(
-        ["Operador", "Data", "Com valor", "Gratuitos", "Total de pedidos"]
+        [
+            "Operador",
+            "Data",
+            "Com valor (planilha)",
+            "Gratuitos (planilha)",
+            "Total (planilha)",
+            "Pagos (Discord)",
+            "Gratuitos (Discord)",
+            "Total (Discord)",
+        ]
     )
-    for operator, _ in operator_order:
+    for operator in operator_order:
         day = first_day
         while day <= last_day:
-            counts = daily_counts.get(day, {}).get(operator, {})
+            counts = normalized_daily_counts.get(day, {}).get(operator, {})
             paid = counts.get("paid", 0)
             free = counts.get("free", 0)
-            operator_daily_sheet.append([operator, day, paid, free, paid + free])
+            discord_paid = normalized_discord_paid_counts.get(day, {}).get(operator, 0)
+            discord_free = normalized_discord_free_counts.get(day, {}).get(operator, 0)
+            operator_daily_sheet.append(
+                [
+                    operator_labels[operator],
+                    day,
+                    paid,
+                    free,
+                    paid + free,
+                    discord_paid,
+                    discord_free,
+                    discord_paid + discord_free,
+                ]
+            )
             day += timedelta(days=1)
 
     operator_totals_sheet.append(
-        ["Operador", "Com valor", "Gratuitos", "Total de pedidos"]
+        [
+            "Operador",
+            "Com valor (planilha)",
+            "Gratuitos (planilha)",
+            "Total (planilha)",
+            "Pagos (Discord)",
+            "Gratuitos (Discord)",
+            "Total (Discord)",
+        ]
     )
-    for operator, counts in operator_order:
+    for operator in operator_order:
+        counts = normalized_totals.get(operator, {})
         paid = counts.get("paid", 0)
         free = counts.get("free", 0)
-        operator_totals_sheet.append([operator, paid, free, paid + free])
+        discord_paid = sum(
+            counts_by_day.get(operator, 0)
+            for counts_by_day in normalized_discord_paid_counts.values()
+        )
+        discord_free = sum(
+            counts_by_day.get(operator, 0)
+            for counts_by_day in normalized_discord_free_counts.values()
+        )
+        operator_totals_sheet.append(
+            [
+                operator_labels[operator],
+                paid,
+                free,
+                paid + free,
+                discord_paid,
+                discord_free,
+                discord_paid + discord_free,
+            ]
+        )
 
     _style_analysis_sheet(
         daily_sheet,
-        [16, 24, 24, 18, 25],
+        [16, 24, 24, 18, 28, 31, 30],
         total_row=daily_sheet.max_row,
     )
     _style_analysis_sheet(
         operator_daily_sheet,
-        [40, 16, 16, 16, 20],
+        [40, 16, 24, 24, 18, 20, 23, 18],
     )
     _style_analysis_sheet(
         operator_totals_sheet,
-        [40, 16, 16, 20],
+        [40, 24, 24, 18, 20, 23, 18],
     )
 
     output = BytesIO()

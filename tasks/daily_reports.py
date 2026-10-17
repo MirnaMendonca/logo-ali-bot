@@ -14,16 +14,59 @@ BRASIL = timezone(
     timedelta(hours=-3),
 )
 
+DAILY_REPORT_EMBED_TITLE = "📊 Fechamento diário"
+
+
+async def _has_daily_report_message(
+    channel: discord.TextChannel,
+    guild: discord.Guild,
+    *,
+    after: datetime,
+    embed_title: str | None = None,
+    attachment_name: str | None = None,
+):
+    bot_member = guild.me
+
+    if bot_member is None:
+        raise RuntimeError("Bot não encontrado no servidor.")
+
+    async for message in channel.history(
+        limit=100,
+        after=after,
+    ):
+        if message.author.id != bot_member.id:
+            continue
+
+        if embed_title is not None and any(
+            embed.title == embed_title for embed in message.embeds
+        ):
+            return True
+
+        if attachment_name is not None and any(
+            attachment.filename == attachment_name for attachment in message.attachments
+        ):
+            return True
+
+    return False
+
 
 async def send_daily_report(
     guild: discord.Guild,
     date: datetime | None = None,
+    *,
+    skip_existing: bool = False,
 ):
 
     if date is None:
         date = datetime.now(BRASIL)
 
     today = date.date()
+    day_start = datetime(
+        today.year,
+        today.month,
+        today.day,
+        tzinfo=BRASIL,
+    )
     start_date, end_date = get_daily_closing_period(date)
 
     channel = discord.utils.get(
@@ -45,7 +88,7 @@ async def send_daily_report(
     dispatcher = summary["dispatcher"]
 
     embed = discord.Embed(
-        title="📊 Fechamento diário",
+        title=DAILY_REPORT_EMBED_TITLE,
         color=discord.Color.green(),
     )
 
@@ -119,9 +162,15 @@ async def send_daily_report(
             inline=False,
         )
 
-    await channel.send(
-        embed=embed,
-    )
+    if not skip_existing or not await _has_daily_report_message(
+        channel,
+        guild,
+        after=day_start,
+        embed_title=DAILY_REPORT_EMBED_TITLE,
+    ):
+        await channel.send(
+            embed=embed,
+        )
 
     #
     # Planilha dos pedidos do dia
@@ -137,6 +186,16 @@ async def send_daily_report(
             "Canal 'relatorio-pedidos' não encontrado.",
         )
 
+    attachment_name = f"fechamento-{guild.id}-{end_date.strftime('%Y-%m-%d')}.xlsx"
+
+    if skip_existing and await _has_daily_report_message(
+        order_reports_channel,
+        guild,
+        after=day_start,
+        attachment_name=attachment_name,
+    ):
+        return
+
     excel_path = generate_daily_excel(
         guild_id=str(guild.id),
         start_date=start_date,
@@ -144,7 +203,6 @@ async def send_daily_report(
     )
 
     try:
-
         await order_reports_channel.send(
             content=(
                 f"📄 **Pedidos do fechamento de "
@@ -153,9 +211,7 @@ async def send_daily_report(
             ),
             file=discord.File(excel_path),
         )
-
     finally:
-
         if os.path.exists(excel_path):
             os.remove(excel_path)
 
@@ -184,6 +240,7 @@ async def send_daily_reports(
                     await send_daily_report(
                         guild=guild,
                         date=now,
+                        skip_existing=True,
                     )
 
                     LAST_SENT_DATE[guild.id] = today

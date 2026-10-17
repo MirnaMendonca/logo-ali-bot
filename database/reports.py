@@ -102,6 +102,7 @@ def get_operator_summary(
         ).filter(
             Order.operator_id == operator.id,
             Order.finished_at >= start_date,
+            Order.dispatcher_value != 0,
         )
 
         if end_date is not None:
@@ -227,6 +228,7 @@ def get_general_summary(
             .filter(
                 Order.guild_id == guild_id,
                 Order.finished_at >= week_start,
+                Order.dispatcher_value != 0,
             )
             .group_by(
                 User.id,
@@ -286,6 +288,7 @@ def get_orders(
             .filter(
                 Order.guild_id == guild_id,
                 Order.finished_at >= start_date,
+                Order.dispatcher_value != 0,
             )
             .order_by(
                 Order.finished_at.asc(),
@@ -305,33 +308,42 @@ def get_orders(
         session.close()
 
 
-def get_order_counts_by_day(
+def get_order_counts_by_operator_by_day(
     guild_id: str,
     start_date: date,
     end_date: date,
-) -> dict[date, int]:
+    category: str,
+) -> tuple[dict[date, dict[str, int]], dict[date, dict[str, int]]]:
     session = SessionLocal()
 
     try:
         start = datetime.combine(start_date, datetime.min.time())
         end = datetime.combine(end_date + timedelta(days=1), datetime.min.time())
 
-        finished_dates = (
-            session.query(Order.finished_at)
+        orders = (
+            session.query(
+                Order.finished_at,
+                Order.operator_name,
+                Order.dispatcher_value,
+            )
             .filter(
                 Order.guild_id == guild_id,
+                Order.category == category,
                 Order.finished_at >= start,
                 Order.finished_at < end,
             )
             .all()
         )
 
-        counts: dict[date, int] = {}
-        for (finished_at,) in finished_dates:
+        paid_counts: dict[date, dict[str, int]] = {}
+        free_counts: dict[date, dict[str, int]] = {}
+        for finished_at, operator_name, dispatcher_value in orders:
             finished_day = finished_at.date()
-            counts[finished_day] = counts.get(finished_day, 0) + 1
+            counts_by_day = free_counts if dispatcher_value == 0 else paid_counts
+            operator_counts = counts_by_day.setdefault(finished_day, {})
+            operator_counts[operator_name] = operator_counts.get(operator_name, 0) + 1
 
-        return counts
+        return paid_counts, free_counts
     finally:
         session.close()
 
