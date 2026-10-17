@@ -77,6 +77,8 @@ Mostra:
 
 - valor acumulado
 
+- no período "hoje", lista pedidos PF e PJ com nome do cliente, CPF/CNPJ e descrição do serviço
+
 ### Relatório geral
 
 ```/relatorio-geral```

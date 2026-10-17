@@ -4,6 +4,7 @@ import discord
 from discord import app_commands
 
 from database.reports import (
+    get_operator_orders,
     get_operator_summary,
     get_today_period,
     get_month_period,
@@ -63,6 +64,15 @@ async def send_operator_report(
             start_date=start,
             end_date=end,
         )
+        orders = (
+            get_operator_orders(
+                operator_discord_id=str(interaction.user.id),
+                start_date=start,
+                end_date=end,
+            )
+            if period == "today"
+            else []
+        )
     except ValueError as error:
         await interaction.response.send_message(
             str(error),
@@ -75,7 +85,7 @@ async def send_operator_report(
         color=discord.Color.blue(),
     )
     embed.add_field(
-        name="Pedidos finalizados",
+        name="Pedidos pagos finalizados",
         value=str(summary["orders"]),
         inline=False,
     )
@@ -85,10 +95,78 @@ async def send_operator_report(
         inline=False,
     )
 
-    await interaction.response.send_message(
-        embed=embed,
-        ephemeral=True,
-    )
+    response_embeds = [embed]
+
+    if period == "today":
+        for category in ("pf", "pj"):
+            category_orders = [
+                order for order in orders if order.category.lower() == category
+            ]
+            category_name = category.upper()
+
+            if not category_orders:
+                response_embeds.append(
+                    discord.Embed(
+                        title=f"Pedidos {category_name} de hoje",
+                        description="Nenhum pedido finalizado hoje.",
+                        color=discord.Color.blue(),
+                    )
+                )
+                continue
+
+            lines = [
+                (
+                    f"**{order.client}**\n"
+                    f"{'CPF' if category == 'pf' else 'CNPJ'}: {order.document}\n"
+                    f"Pedido: {order.order}"
+                )
+                for order in category_orders
+            ]
+            pages = []
+            current_page = ""
+
+            for line in lines:
+                while len(line) > 3900:
+                    if current_page:
+                        pages.append(current_page)
+                        current_page = ""
+                    pages.append(line[:3900])
+                    line = line[3900:]
+
+                candidate = f"{current_page}\n\n{line}" if current_page else line
+                if len(candidate) > 3900:
+                    pages.append(current_page)
+                    current_page = line
+                else:
+                    current_page = candidate
+
+            if current_page:
+                pages.append(current_page)
+
+            for page_number, page in enumerate(pages, start=1):
+                title = f"Pedidos {category_name} de hoje"
+                if len(pages) > 1:
+                    title += f" ({page_number}/{len(pages)})"
+                response_embeds.append(
+                    discord.Embed(
+                        title=title,
+                        description=page,
+                        color=discord.Color.blue(),
+                    )
+                )
+
+    for embed_index in range(0, len(response_embeds), 10):
+        embeds = response_embeds[embed_index : embed_index + 10]
+        if embed_index == 0:
+            await interaction.response.send_message(
+                embeds=embeds,
+                ephemeral=True,
+            )
+        else:
+            await interaction.followup.send(
+                embeds=embeds,
+                ephemeral=True,
+            )
 
 
 def setup_report_operator(bot: discord.Client):

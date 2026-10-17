@@ -117,6 +117,9 @@ async def ensure_order_thread_setup(thread: discord.Thread):
 
 @bot.event
 async def on_thread_create(thread: discord.Thread):
+    if thread.guild is None or thread.guild.id not in GUILDS:
+        return
+
     if not is_order_forum(thread.parent):
         return
 

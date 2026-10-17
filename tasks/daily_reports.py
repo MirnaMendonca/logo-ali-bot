@@ -4,6 +4,7 @@ import os
 
 import discord
 
+from config import GUILDS
 from database.reports import get_daily_closing_period
 from database.reports import get_general_summary
 from utils.excel import generate_daily_excel
@@ -231,6 +232,8 @@ async def send_daily_reports(
             today = now.date()
 
             for guild in bot.guilds:
+                if guild.id not in GUILDS:
+                    continue
 
                 if LAST_SENT_DATE.get(guild.id) == today:
                     continue

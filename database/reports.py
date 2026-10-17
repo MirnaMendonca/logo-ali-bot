@@ -123,6 +123,36 @@ def get_operator_summary(
         session.close()
 
 
+def get_operator_orders(
+    operator_discord_id: str,
+    start_date: datetime,
+    end_date: datetime | None = None,
+) -> list[Order]:
+    session = SessionLocal()
+
+    try:
+        operator = session.query(User).filter_by(discord_id=operator_discord_id).first()
+
+        if operator is None:
+            raise ValueError("Operador não cadastrado.")
+
+        query = (
+            session.query(Order)
+            .filter(
+                Order.operator_id == operator.id,
+                Order.finished_at >= start_date,
+            )
+            .order_by(Order.finished_at.asc(), Order.id.asc())
+        )
+
+        if end_date is not None:
+            query = query.filter(Order.finished_at < end_date)
+
+        return query.all()
+    finally:
+        session.close()
+
+
 def get_dispatcher_summary(
     guild_id: str,
     start_date: datetime,

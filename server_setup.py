@@ -1,5 +1,6 @@
 import discord
 
+from config import GUILDS
 from views.panels import OperatorReportPanelView
 from views.panels import RegisterPanelView
 
@@ -412,6 +413,8 @@ async def setup_server(
 ):
 
     for guild in bot.guilds:
+        if guild.id not in GUILDS:
+            continue
 
         print(
             f"[SETUP] Verificando servidor | "
